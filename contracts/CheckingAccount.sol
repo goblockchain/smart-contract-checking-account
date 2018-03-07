@@ -4,12 +4,16 @@ import "../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 contract CheckingAccount is Ownable {
+    
+    // 0 - Inactive | 1 - Active
+    enum Status {INACTIVE, ACTIVE}
+    Status status;
 
     //A struct to hold the Authorizer's informations
     struct Authorizer {
         address _address;
-        uint entryDate;
-        uint8 status; // 0 - Inactive | 1 - Active
+        uint256 entryDate;
+        Status status;
     }
 
     //A struct to hold the Transaction's information about 
@@ -18,8 +22,8 @@ contract CheckingAccount is Ownable {
         address from;
         address to;
         bytes32 description;
-        uint amount;
-        uint date;
+        uint256 amount;
+        uint256 date;
         uint8 signatureCount;
         mapping (address => uint8) signatures;
     }
@@ -29,45 +33,43 @@ contract CheckingAccount is Ownable {
     struct TransactionChangeContractOwnership {
         address from;
         address to;
-        uint amount;
+        uint256 amount;
         uint8 signatureCount;
         mapping (address => uint8) signatures;
     }
 
-    uint private constant MIN_SIGNATURES = 2;
-    uint private constant MAX_AUTHORIZERS = 9;
-    uint private _transactionIdx;
-    uint private _transactionChangeContractOwnershipIdx;
-    uint private _numAuthorized;
+    uint256 private constant MIN_SIGNATURES = 2;
+    uint256 private constant MAX_AUTHORIZERS = 9;
+    uint256 private _transactionIdx;
+    uint256 private _transactionChangeContractOwnershipIdx;
+    uint256 private _numAuthorized;
 
-    uint[] private _pendingTransactions;
-    uint[] private _pendingTransactionsChangeContractOwnership;
-
-    address private _owner;
+    uint256[] private _pendingTransactions;
+    uint256[] private _pendingTransactionsChangeContractOwnership;
 
     mapping(address => Authorizer) private _authorizers;
     mapping(address => uint8) private _owners;
-    mapping (uint => Transaction) private _transactions;
-    mapping (uint => TransactionChangeContractOwnership) private _transactionsChangeContractOwnership;
+    mapping (uint256 => Transaction) private _transactions;
+    mapping (uint256 => TransactionChangeContractOwnership) private _transactionsChangeContractOwnership;
 
     //Modifier to validate the ownership
     modifier validOwner() {
-        require(msg.sender == _owner || _authorizers[msg.sender].status == 1);
+        require(msg.sender == owner || _authorizers[msg.sender].status == Status.ACTIVE);
         _;
     }
 
-    event DepositFunds(address from, uint amount);
-    event TransactionSendTokenCreated(address from, address to, uint amount, uint transactionId);
-    event TransactionSendTokenCompleted(address from, address to, uint amount, uint transactionId);
-    event TransactionSendTokenSigned(address by, uint transactionId);
+    event DepositFunds(address from, uint256 amount);
+    event TransactionSendTokenCreated(address from, address to, uint256 amount, uint256 transactionId);
+    event TransactionSendTokenCompleted(address from, address to, uint256 amount, uint256 transactionId);
+    event TransactionSendTokenSigned(address by, uint256 transactionId);
 
-    event TransactionChangeContractOwnershipCreated(address from, address to, uint transactionId);
-    event TransactionChangeContractOwnershipCompleted(address from, address to, uint transactionId);
-    event TransactionChangeContractOwnershipSigned(address by, uint transactionId);
+    event TransactionChangeContractOwnershipCreated(address from, address to, uint256 transactionId);
+    event TransactionChangeContractOwnershipCompleted(address from, address to, uint256 transactionId);
+    event TransactionChangeContractOwnershipSigned(address by, uint256 transactionId);
 
     function CheckingAccount() public {
         _numAuthorized = 0;
-        _owner = msg.sender;
+        owner = msg.sender;
     }
 
     //Receive tokens for the contract
@@ -85,27 +87,27 @@ contract CheckingAccount is Ownable {
         Authorizer memory authorizer;
         authorizer._address = authorized;
         authorizer.entryDate = now;
-        authorizer.status = 1;
+        authorizer.status = Status.ACTIVE;
         _authorizers[authorized] = authorizer;
     }
     
     //Remove transaction's authorizer
     function removeAuthorizer(address authorized) public onlyOwner {
-         _authorizers[authorized].status = 0;
+         _authorizers[authorized].status = Status.INACTIVE;
          if (_numAuthorized > 0) {
             _numAuthorized--;
          }
     }
 
     //Request tokens withdraw
-    function withdraw(uint amount, bytes32 description) public {
+    function withdraw(uint256 amount, bytes32 description) public {
         transferTo(msg.sender, amount, description);
     }
 
     //Transfer tokens from Contract's balance to another address
-    function transferTo(address to, uint amount, bytes32 description) private {
+    function transferTo(address to, uint256 amount, bytes32 description) private {
         require(address(this).balance >= amount);
-        uint transactionId = _transactionIdx++;
+        uint256 transactionId = _transactionIdx++;
 
         Transaction memory transaction;
         transaction.from = msg.sender;
@@ -122,14 +124,14 @@ contract CheckingAccount is Ownable {
     }
 
     //Get the pending transations to send tokens
-    function getPendingTransactionsSendToken() public validOwner view returns (uint[]) {
+    function getPendingTransactionsSendToken() public validOwner view returns (uint256[]) {
         return _pendingTransactions;
     }
 
     //Get the transation to send tokens
-    function getTransactionSendToken(uint transactionId) public validOwner view 
-                                            returns (address from, address to, uint amount, 
-                                            bytes32 description, uint date, uint8 signatureCount) 
+    function getTransactionSendToken(uint256 transactionId) public validOwner view 
+                                            returns (address from, address to, uint256 amount, 
+                                            bytes32 description, uint256 date, uint8 signatureCount) 
     {
         from = _transactions[transactionId].from;
         to = _transactions[transactionId].to;
@@ -140,7 +142,7 @@ contract CheckingAccount is Ownable {
     }
 
     //Sign a transaction to send tokens
-    function signTransactionSendToken(uint transactionId) public validOwner {
+    function signTransactionSendToken(uint256 transactionId) public validOwner {
 
         Transaction storage transaction = _transactions[transactionId];
 
@@ -166,7 +168,7 @@ contract CheckingAccount is Ownable {
     }
 
     //Delete a transaction to send tokens
-    function deleteTransactionSendToken(uint transactionId) public validOwner {
+    function deleteTransactionSendToken(uint256 transactionId) public validOwner {
         uint8 replace = replaceElementFromTransactionsArray(_pendingTransactions, transactionId);
         assert(replace == 1);
         delete _pendingTransactions[_pendingTransactions.length - 1];
@@ -176,7 +178,7 @@ contract CheckingAccount is Ownable {
 
     //Transfer Contract's ownership to another address
     function transferContractOwnershipTo(address to) public onlyOwner {
-        uint transactionId = _transactionChangeContractOwnershipIdx++;
+        uint256 transactionId = _transactionChangeContractOwnershipIdx++;
 
         TransactionChangeContractOwnership memory transaction;
         transaction.from = msg.sender;
@@ -190,13 +192,13 @@ contract CheckingAccount is Ownable {
     }
 
     //Get the pending transations to change Contract's ownership
-    function getPendingTransactionsToChangeContractOwnership() public validOwner view returns (uint[]) {
+    function getPendingTransactionsToChangeContractOwnership() public validOwner view returns (uint256[]) {
         return _pendingTransactionsChangeContractOwnership;
     }
 
     //Get the transation to change Contract's ownership
-    function getTransactionToChangeContractOwnership(uint transactionId) public validOwner view 
-                                            returns (address from, address to, uint amount, uint8 signatureCount) 
+    function getTransactionToChangeContractOwnership(uint256 transactionId) public validOwner view 
+                                            returns (address from, address to, uint256 amount, uint8 signatureCount) 
     {
         from = _transactionsChangeContractOwnership[transactionId].from;
         to = _transactionsChangeContractOwnership[transactionId].to;
@@ -205,7 +207,7 @@ contract CheckingAccount is Ownable {
     }
 
     //Sign a transaction to change Contract's ownership
-    function signTransactionToChangeContractOwnership(uint transactionId) public validOwner {
+    function signTransactionToChangeContractOwnership(uint256 transactionId) public validOwner {
 
         TransactionChangeContractOwnership storage transaction = _transactionsChangeContractOwnership[transactionId];
 
@@ -224,14 +226,14 @@ contract CheckingAccount is Ownable {
         TransactionChangeContractOwnershipSigned(msg.sender, transactionId);
 
         if (transaction.signatureCount >= ((MIN_SIGNATURES/2)+1)) {
-            _owner = transaction.to;
+            owner = transaction.to;
             TransactionChangeContractOwnershipCompleted(transaction.from, transaction.to, transactionId);
             deleteTransactionChangeContractOwnership(transactionId);
         }
     }
 
     //Delete a transaction to  change Contract's ownership
-    function deleteTransactionChangeContractOwnership(uint transactionId) public validOwner {
+    function deleteTransactionChangeContractOwnership(uint256 transactionId) public validOwner {
         uint8 replace = replaceElementFromTransactionsArray(_pendingTransactionsChangeContractOwnership, transactionId);
 
         assert(replace == 1);
@@ -240,13 +242,13 @@ contract CheckingAccount is Ownable {
         delete _transactionsChangeContractOwnership[transactionId];
     }
 
-    function replaceElementFromTransactionsArray(uint[] storage transactionsArray, uint transactionId) 
+    function replaceElementFromTransactionsArray(uint256[] storage transactionsArray, uint256 transactionId) 
         private returns (uint8) 
     {
         require(transactionsArray.length > 0);
         uint8 replace = 0;
 
-        for (uint i = 0; i < transactionsArray.length; i++) {
+        for (uint256 i = 0; i < transactionsArray.length; i++) {
             if (1 == replace) {
                 transactionsArray[i-1] = transactionsArray[i];
             } else if (transactionId == transactionsArray[i]) {
@@ -256,7 +258,7 @@ contract CheckingAccount is Ownable {
         return replace;
     }
 
-    function walletBalance() public constant returns (uint) {
+    function walletBalance() public constant returns (uint256) {
         return address(this).balance;
     }
 }
