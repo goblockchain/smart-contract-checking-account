@@ -1,20 +1,56 @@
 pragma solidity ^0.4.18;
 
-import "../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "./zeppelin/Ownable.sol";
 
-
-contract CheckingAccount is Ownable {
+contract AccountAuthorizer {
     
     // 0 - Inactive | 1 - Active
-    enum Status {INACTIVE, ACTIVE}
-    Status status;
+    enum StatusAuthorizer {INACTIVE, ACTIVE}
+    StatusAuthorizer statusAuthorizer;
+
+    // 0 - COLAB | 1 - ADVISER
+    enum TypeAuthorizer {COLAB, ADVISER}
+    TypeAuthorizer typeAuthorizer;
+
+    uint256 public _numAuthorized;    
+    mapping(address => Authorizer) public _authorizers;
 
     //A struct to hold the Authorizer's informations
     struct Authorizer {
         address _address;
         uint256 entryDate;
-        Status status;
+        StatusAuthorizer statusAuthorizer;
+        TypeAuthorizer typeAuthorizer;
     }
+
+    //Add transaction's authorizer
+    function addAccountAuthorizer(address authorized, int8 _typeAuthorizer) internal {
+        require(_authorizers[authorized]._address == 0x0);
+        _numAuthorized++;
+    
+        Authorizer memory authorizer;
+        authorizer._address = authorized;
+        authorizer.entryDate = now;
+        authorizer.statusAuthorizer = StatusAuthorizer.ACTIVE;
+        if (_typeAuthorizer == 1) {
+            authorizer.typeAuthorizer = TypeAuthorizer.COLAB;
+        } else {
+            authorizer.typeAuthorizer = TypeAuthorizer.ADVISER;
+        }
+        
+        _authorizers[authorized] = authorizer;
+    }
+    
+    //Remove transaction's authorizer
+    function removeAccountAuthorizer(address authorized) internal {
+         _authorizers[authorized].statusAuthorizer = StatusAuthorizer.INACTIVE;
+         if (_numAuthorized > 0) {
+            _numAuthorized--;
+         }
+    }
+}
+
+contract CheckingAccount is Ownable, AccountAuthorizer {
 
     //A struct to hold the Transaction's information about 
     // the transfering of tokens from an address to another
@@ -38,27 +74,30 @@ contract CheckingAccount is Ownable {
         mapping (address => uint8) signatures;
     }
 
+    // the minimum signatures for authorize the transaction
     uint256 private constant MIN_SIGNATURES = 2;
+    //the max authorize to add in contract
     uint256 private constant MAX_AUTHORIZERS = 9;
-    uint256 private _transactionIdx;
-    uint256 private _transactionChangeContractOwnershipIdx;
-    uint256 private _numAuthorized;
 
+    uint256 private _transactionIdx;
+    uint256 private _transactionChangeContractOwnershipIdx;    
+
+    //list the pending transations
     uint256[] private _pendingTransactions;
     uint256[] private _pendingTransactionsChangeContractOwnership;
 
-    mapping(address => Authorizer) private _authorizers;
     mapping(address => uint8) private _owners;
-    mapping (uint256 => Transaction) private _transactions;
+    mapping (uint256 => Transaction) private _transactions;    
     mapping (uint256 => TransactionChangeContractOwnership) private _transactionsChangeContractOwnership;
 
     //Modifier to validate the ownership
     modifier validOwner() {
-        require(msg.sender == owner || _authorizers[msg.sender].status == Status.ACTIVE);
+        require(msg.sender == owner || _authorizers[msg.sender].statusAuthorizer == StatusAuthorizer.ACTIVE);
         _;
     }
 
     event DepositFunds(address from, uint256 amount);
+
     event TransactionSendTokenCreated(address from, address to, uint256 amount, uint256 transactionId);
     event TransactionSendTokenCompleted(address from, address to, uint256 amount, uint256 transactionId);
     event TransactionSendTokenSigned(address by, uint256 transactionId);
@@ -66,7 +105,7 @@ contract CheckingAccount is Ownable {
     event TransactionChangeContractOwnershipCreated(address from, address to, uint256 transactionId);
     event TransactionChangeContractOwnershipCompleted(address from, address to, uint256 transactionId);
     event TransactionChangeContractOwnershipSigned(address by, uint256 transactionId);
-
+    
     function CheckingAccount() public {
         _numAuthorized = 0;
         owner = msg.sender;
@@ -77,26 +116,14 @@ contract CheckingAccount is Ownable {
         DepositFunds(msg.sender, msg.value);
     }
 
-    //Add transaction's authorizer
-    function addAuthorizer(address authorized) public onlyOwner {
+    function addAuthorizer(address authorized, int8 _typeAuthorizer) public onlyOwner {
         require(_numAuthorized <= MAX_AUTHORIZERS);
-
-        if (_authorizers[authorized]._address == 0x0) {
-            _numAuthorized++;
-        }
-        Authorizer memory authorizer;
-        authorizer._address = authorized;
-        authorizer.entryDate = now;
-        authorizer.status = Status.ACTIVE;
-        _authorizers[authorized] = authorizer;
+        addAccountAuthorizer(authorized, _typeAuthorizer);
     }
-    
-    //Remove transaction's authorizer
-    function removeAuthorizer(address authorized) public onlyOwner {
-         _authorizers[authorized].status = Status.INACTIVE;
-         if (_numAuthorized > 0) {
-            _numAuthorized--;
-         }
+
+    function removeAuthorizer(address authorized)  public onlyOwner {
+        require(_numAuthorized > 0);
+        removeAccountAuthorizer(authorized);
     }
 
     //Request tokens withdraw
