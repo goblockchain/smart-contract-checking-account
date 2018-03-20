@@ -21,6 +21,26 @@ contract CheckingAccount is AccountTransaction {
         transferTo(msg.sender, _amount, _description);
     }
 
+    //Transfer Contract's ownership to another address
+    function transferContractOwnershipTo(address _to) public onlyOwner {
+        uint256 transactionId = _transactionChangeContractOwnershipIdx++;
+
+        TransactionChangeContractOwnership memory transaction;
+        transaction.from = msg.sender;
+        transaction.to = _to;
+        transaction.signatureCountColab = 0;
+        transaction.signatureCountAdviser = 0;
+
+        _transactionsChangeContractOwnership[transactionId] = transaction;
+        _pendingTransactionsChangeContractOwnership.push(transactionId);
+
+        TransactionChangeContractOwnershipCreated(msg.sender, _to, transactionId);
+    }  
+
+    function walletBalance() public constant returns (uint256) {
+        return address(this).balance;
+    }
+
     //Transfer tokens from Contract's balance to another address
     function transferTo(address _to, uint256 _amount, bytes32 _description) private {
         require(address(this).balance >= _amount);
@@ -40,25 +60,5 @@ contract CheckingAccount is AccountTransaction {
         _pendingTransactions.push(transactionId);
 
         TransactionSendTokenCreated(transaction.from, _to, _amount, transactionId);
-    }
-
-    //Transfer Contract's ownership to another address
-    function transferContractOwnershipTo(address _to) public onlyOwner {
-        uint256 transactionId = _transactionChangeContractOwnershipIdx++;
-
-        TransactionChangeContractOwnership memory transaction;
-        transaction.from = msg.sender;
-        transaction.to = _to;
-        transaction.signatureCountColab = 0;
-        transaction.signatureCountAdviser = 0;
-
-        _transactionsChangeContractOwnership[transactionId] = transaction;
-        _pendingTransactionsChangeContractOwnership.push(transactionId);
-
-        TransactionChangeContractOwnershipCreated(msg.sender, _to, transactionId);
-    }  
-
-    function walletBalance() public constant returns (uint256) {
-        return address(this).balance;
     }
 }

@@ -10,7 +10,7 @@ contract('CheckingAccount', (accounts) => {
   it('should revert the transaction of addAuthorizer when an invalid address calls it', () => {
     return CheckingAccount.deployed()
       .then(instance => {
-        return instance.addAuthorizer(firstOwnerAddress, {from:externalAddress});
+        return instance.addAuthorizer(firstOwnerAddress, 1, {from:externalAddress});
       })
       .then(result => {
         assert.fail();
@@ -38,10 +38,10 @@ contract('CheckingAccount', (accounts) => {
     return CheckingAccount.deployed()
       .then(instance => {
         CheckingAccountInstance = instance;
-        return CheckingAccountInstance.removeAuthorizer(creatorAddress);
+        return CheckingAccountInstance.addAuthorizer(creatorAddress, 1);
       })
       .then(removedResult => {
-        return CheckingAccountInstance.addAuthorizer(creatorAddress);
+        return CheckingAccountInstance.removeAuthorizer(creatorAddress);
       })
       .catch(error => {
         assert.fail("Transaction was reverted by a creator call");
@@ -53,26 +53,26 @@ contract('CheckingAccount', (accounts) => {
     return CheckingAccount.deployed()
       .then(instance => {
         CheckingAccountInstance = instance;
-        return CheckingAccountInstance.addAuthorizer(accounts[1]);
+        return CheckingAccountInstance.addAuthorizer(accounts[1], 1);
       })
       .then(addingBatchResult => {
-        return CheckingAccountInstance.addAuthorizer(accounts[2]);
+        return CheckingAccountInstance.addAuthorizer(accounts[2], 1);
       }).then(addingBatchResult => {
-        return CheckingAccountInstance.addAuthorizer(accounts[3]);
+        return CheckingAccountInstance.addAuthorizer(accounts[3], 1);
       }).then(addingBatchResult => {
-        return CheckingAccountInstance.addAuthorizer(accounts[4]);
+        return CheckingAccountInstance.addAuthorizer(accounts[4], 1);
       }).then(addingBatchResult => {
-        return CheckingAccountInstance.addAuthorizer(accounts[5]);
+        return CheckingAccountInstance.addAuthorizer(accounts[5], 1);
       }).then(addingBatchResult => {
-        return CheckingAccountInstance.addAuthorizer(accounts[6]);
+        return CheckingAccountInstance.addAuthorizer(accounts[6], 1);
       }).then(addingBatchResult => {
-        return CheckingAccountInstance.addAuthorizer(accounts[7]);
+        return CheckingAccountInstance.addAuthorizer(accounts[7], 1);
       }).then(addingBatchResult => {
-        return CheckingAccountInstance.addAuthorizer(accounts[8]);
+        return CheckingAccountInstance.addAuthorizer(accounts[8], 1);
       }).then(addingBatchResult => {
-        return CheckingAccountInstance.addAuthorizer(accounts[9]);
+        return CheckingAccountInstance.addAuthorizer(accounts[9], 1);
       }).then(addingBatchResult => {
-        return CheckingAccountInstance.addAuthorizer(creatorAddress);
+        return CheckingAccountInstance.addAuthorizer(creatorAddress, 1);
       })
       .then(addingResult => {
         assert.fail();
@@ -124,7 +124,7 @@ contract('CheckingAccount', (accounts) => {
            return CheckingAccountInstance.sendTransaction({from: creatorAddress, value: 30000});
          })
          .then(transferResult => {
-           return CheckingAccountInstance.addAuthorizer(firstOwnerAddress);
+           return CheckingAccountInstance.addAuthorizer(firstOwnerAddress, 1);
          })
         .then(addAuthorizerResult => {
           return CheckingAccountInstance.withdraw(10, {from: firstOwnerAddress});
@@ -189,7 +189,7 @@ contract('CheckingAccount', (accounts) => {
          })
          .then(transferResult => {
            CheckingAccountInstance.removeAuthorizer(firstOwnerAddress);
-           return CheckingAccountInstance.addAuthorizer(firstOwnerAddress);
+           return CheckingAccountInstance.addAuthorizer(firstOwnerAddress, 1);
          })
         .then(addAuthorizerResult => {
           return CheckingAccountInstance.transferContractOwnershipTo(firstOwnerAddress);
