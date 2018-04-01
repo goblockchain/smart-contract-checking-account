@@ -106,7 +106,7 @@ contract AccountTransaction is AccountAuthorizer {
     }
 
     //Delete a transaction to send tokens
-    function deleteTransactionSendToken(uint256 _transactionId) public validOwner {
+    function deleteTransactionSendToken(uint256 _transactionId) private validOwner {
         uint8 replace = replaceElementFromTransactionsArray(_pendingTransactions, _transactionId);
         assert(replace == 1);
         _pendingTransactions.length--;
@@ -169,7 +169,7 @@ contract AccountTransaction is AccountAuthorizer {
     }
     
     //Delete a transaction to  change Contract's ownership
-    function deleteTransactionChangeContractOwnership(uint256 _transactionId) public validOwner {
+    function deleteTransactionChangeContractOwnership(uint256 _transactionId) private validOwner {
         uint8 replace = replaceElementFromTransactionsArray(_pendingTransactionsChangeContractOwnership, _transactionId);
         assert(replace == 1);
         delete _pendingTransactionsChangeContractOwnership[_pendingTransactionsChangeContractOwnership.length - 1];
