@@ -109,9 +109,8 @@ contract AccountTransaction is AccountAuthorizer {
     function deleteTransactionSendToken(uint256 _transactionId) private validOwner {
         uint8 replace = replaceElementFromTransactionsArray(_pendingTransactions, _transactionId);
         assert(replace == 1);
-        _pendingTransactions.length--;
         delete _pendingTransactions[_pendingTransactions.length - 1];
-        delete _transactions[_transactionId];
+        _pendingTransactions.length--;
     }
 
     //Get the pending transations to send tokens
@@ -174,7 +173,6 @@ contract AccountTransaction is AccountAuthorizer {
         assert(replace == 1);
         delete _pendingTransactionsChangeContractOwnership[_pendingTransactionsChangeContractOwnership.length - 1];
         _pendingTransactionsChangeContractOwnership.length--;
-        delete _transactionsChangeContractOwnership[_transactionId];
     }      
 
     function replaceElementFromTransactionsArray(uint256[] storage _transactionsArray, uint256 _transactionId) 
