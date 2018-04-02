@@ -125,7 +125,7 @@ contract('CheckingAccount', (accounts) => {
         return CheckingAccountInstance.sendTransaction({ from: creatorAddress, value: 1000 })
       })
       .then(sendResult => {
-        return CheckingAccountInstance.withdraw(10);
+        return CheckingAccountInstance.withdrawTo(externalAddress, 10, 123);
       })
       .then(withdrawResult => {
         return CheckingAccountInstance.signTransactionSendToken(0);
@@ -149,7 +149,7 @@ contract('CheckingAccount', (accounts) => {
         return CheckingAccountInstance.addAuthorizer(firstOwnerAddress, 1);
       })
       .then(addAuthorizerResult => {
-        return CheckingAccountInstance.withdraw(10, { from: firstOwnerAddress });
+        return CheckingAccountInstance.withdrawTo(externalAddress, 10, 123, { from: firstOwnerAddress });
       })
       .then(firstWithdrawResult => {
         return CheckingAccountInstance.signTransactionSendToken(1);

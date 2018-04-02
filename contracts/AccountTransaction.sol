@@ -81,6 +81,8 @@ contract AccountTransaction is AccountAuthorizer {
         require(0x0 != transaction.from);
         // Creator cannot sign the transaction
         require(msg.sender != transaction.from);
+        // Receiver cannot sign the transaction
+        require(msg.sender != transaction.to);
 
         if (_authorizers[msg.sender].typeAuthorizer == TypeAuthorizer.COLAB) {
             // Cannot sign a transaction more than once
@@ -100,8 +102,10 @@ contract AccountTransaction is AccountAuthorizer {
             require(address(this).balance >= transaction.amount);
             TransactionSendTokenCompleted(transaction.from, transaction.to, 
                                             transaction.amount, _transactionId);
-            deleteTransactionSendToken(_transactionId);            
-            transaction.to.transfer(transaction.amount);
+            deleteTransactionSendToken(_transactionId);
+            //Convert amount in wei to ether base.
+            uint256 etherAmount = transaction.amount * (10**18);
+            transaction.to.transfer(etherAmount);
         }
     }
 

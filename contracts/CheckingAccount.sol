@@ -17,8 +17,8 @@ contract CheckingAccount is AccountTransaction {
     }
 
     //Request tokens withdraw
-    function withdraw(uint256 _amount, bytes32 _description) public {
-        transferTo(msg.sender, _amount, _description);
+    function withdrawTo(address _to, uint256 _amount, bytes32 _description) public {
+        transferTo(_to, _amount, _description);
     }
 
     //Transfer Contract's ownership to another address
