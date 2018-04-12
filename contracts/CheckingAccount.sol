@@ -9,6 +9,7 @@ contract CheckingAccount is AccountTransaction {
     function CheckingAccount() public {
         _numAuthorized = 0;
         owner = msg.sender;
+        addAuthorizer(owner, TypeAuthorizer.ADVISER);
     }
 
     //Receive tokens for the contract
