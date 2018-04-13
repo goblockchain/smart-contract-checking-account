@@ -10,7 +10,14 @@ module.exports = {
       port: 7545,
       network_id: "*",
       gas: 4012388,
-    //  from: "0x15c0C903A2f7c59b31d75adcd8B08FAd4053Afe5"
+      // from: "0x63a391ac64b6e4cc773ee7146e0a58d6a2046095"
+    },
+    rinkeby: {
+      host: "localhost",
+      port: 8545,
+      network_id: "4",
+      gas: 4012388,
+      from: "0x63a391ac64b6e4cc773ee7146e0a58d6a2046095"
     }
   }
 };
