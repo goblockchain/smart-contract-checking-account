@@ -1,8 +1,12 @@
 pragma solidity ^0.4.18;
 
 import './AccountAuthorizer.sol';
+import './libs/StringUtils.sol';
 
 contract AccountTransaction is AccountAuthorizer {
+    
+    using StringUtils for string;
+    using StringUtils for bytes;
 
     // the minimum signatures for authorize the transaction
     uint256 public constant MIN_SIGNATURES_ADVISER = 2;
@@ -31,7 +35,7 @@ contract AccountTransaction is AccountAuthorizer {
     struct Transaction {
         address from;
         address to;
-        bytes32 description;
+        bytes description;
         uint256 amount;
         uint256 date;
         uint8 signatureCountColab;
@@ -61,12 +65,12 @@ contract AccountTransaction is AccountAuthorizer {
     //Get the transation to send tokens
     function getTransactionSendToken(uint256 _transactionId) public validOwner view 
                                             returns (address from, address to, uint256 amount, 
-                                            bytes32 description, uint256 date, uint8 signatureCountColab, uint8 signatureCountAdviser) 
+                                            string description, uint256 date, uint8 signatureCountColab, uint8 signatureCountAdviser) 
     {
         from = _transactions[_transactionId].from;
         to = _transactions[_transactionId].to;
         amount = _transactions[_transactionId].amount;
-        description = _transactions[_transactionId].description;
+        description = _transactions[_transactionId].description.bytesToString();
         date = _transactions[_transactionId].date;
         signatureCountColab = _transactions[_transactionId].signatureCountColab;
         signatureCountAdviser = _transactions[_transactionId].signatureCountAdviser;
@@ -193,5 +197,5 @@ contract AccountTransaction is AccountAuthorizer {
             }
         }
         return replace;
-    }    
+    }
 }

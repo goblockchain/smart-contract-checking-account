@@ -18,7 +18,7 @@ contract CheckingAccount is AccountTransaction {
     }
 
     //Request tokens withdraw
-    function withdrawTo(address _to, uint256 _amount, bytes32 _description) public {
+    function withdrawTo(address _to, uint256 _amount, string _description) public {
         transferTo(_to, _amount, _description);
     }
 
@@ -43,16 +43,16 @@ contract CheckingAccount is AccountTransaction {
     }
 
     //Transfer tokens from Contract's balance to another address
-    function transferTo(address _to, uint256 _amount, bytes32 _description) private {
+    function transferTo(address _to, uint256 _amount, string _description) private {
         require(address(this).balance >= _amount);
         
-        uint256 transactionId = _transactionIdx++;
+        uint256 transactionId = ++_transactionIdx;
 
         Transaction memory transaction;
         transaction.from = msg.sender;
         transaction.to = _to;
         transaction.amount = _amount;
-        transaction.description = _description;
+        transaction.description = _description.stringToBytes();
         transaction.date = now;
         transaction.signatureCountColab = 0;
         transaction.signatureCountAdviser = 0;

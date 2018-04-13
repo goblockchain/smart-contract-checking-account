@@ -55,7 +55,7 @@ contract('CheckingAccount', (accounts) => {
       });
   });
 
-  it('should not revert the transaction of owner modification by the creator address', () => {
+  it('should revert the transaction when trying to add Authorizer twice', () => {
     let CheckingAccountInstance;
     return CheckingAccount.deployed()
       .then(instance => {
@@ -65,8 +65,11 @@ contract('CheckingAccount', (accounts) => {
       .then(removedResult => {
         return CheckingAccountInstance.removeAuthorizer(creatorAddress);
       })
+      .then(removedResult => {
+        assert.fail();
+      })
       .catch(error => {
-        assert.fail("Transaction was reverted by a creator call");
+        assert.notEqual(error.message, "assert.fail()", "Transaction was not reverted trying to add Authorizer twice");
       });
   });
 
