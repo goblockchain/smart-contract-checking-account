@@ -5,7 +5,7 @@ import "./zeppelin/Ownable.sol";
 contract AccountAuthorizer is Ownable {
     
     //the max authorize to add in contract
-    uint256 public constant MAX_AUTHORIZERS = 9;
+    uint256 public MAX_AUTHORIZERS = 10;
 
     // 0 - Inactive | 1 - Active
     enum StatusAuthorizer {INACTIVE, ACTIVE}
@@ -18,6 +18,11 @@ contract AccountAuthorizer is Ownable {
     uint256 public _numAuthorized;    
     mapping(address => Authorizer) public _authorizers;
 
+    modifier onlyAuthorizer() {
+        require(_authorizers[msg.sender]._address != 0x0);
+        _;
+    }
+
     //A struct to hold the Authorizer's informations
     struct Authorizer {
         address _address;
@@ -29,7 +34,8 @@ contract AccountAuthorizer is Ownable {
     //Add transaction's authorizer
     function addAuthorizer(address _authorized, TypeAuthorizer _typeAuthorizer) public onlyOwner {
         require(_numAuthorized <= MAX_AUTHORIZERS);
-        require(_authorizers[_authorized]._address == 0x0);
+        require(_authorizers[_authorized]._address == 0x0 || authorizer.statusAuthorizer == StatusAuthorizer.INACTIVE);
+        require(_typeAuthorizer == TypeAuthorizer.COLAB || _typeAuthorizer == TypeAuthorizer.ADVISER);
         _numAuthorized++;
     
         Authorizer memory authorizer;
