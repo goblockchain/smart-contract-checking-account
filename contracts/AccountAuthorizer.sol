@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 import "./zeppelin/Ownable.sol";
 
@@ -19,7 +19,10 @@ contract AccountAuthorizer is Ownable {
     mapping(address => Authorizer) public _authorizers;
 
     modifier onlyAuthorizer() {
-        require(_authorizers[msg.sender]._address != 0x0);
+        require(
+            _authorizers[msg.sender]._address != 0x0 && 
+            _authorizers[msg.sender].statusAuthorizer == StatusAuthorizer.ACTIVE
+        );
         _;
     }
 
@@ -34,8 +37,10 @@ contract AccountAuthorizer is Ownable {
     //Add transaction's authorizer
     function addAuthorizer(address _authorized, TypeAuthorizer _typeAuthorizer) public onlyOwner {
         require(_numAuthorized <= MAX_AUTHORIZERS);
-        require(_authorizers[_authorized]._address == 0x0 
-                || _authorizers[_authorized].statusAuthorizer == StatusAuthorizer.INACTIVE);
+        require(
+            _authorizers[_authorized]._address == 0x0 || 
+            _authorizers[_authorized].statusAuthorizer == StatusAuthorizer.INACTIVE
+        );
 
         _numAuthorized++;
     
@@ -44,7 +49,6 @@ contract AccountAuthorizer is Ownable {
         authorizer.entryDate = now;
         authorizer.statusAuthorizer = StatusAuthorizer.ACTIVE;
         authorizer.typeAuthorizer = _typeAuthorizer;
-        
         _authorizers[_authorized] = authorizer;
     }
     
@@ -56,4 +60,15 @@ contract AccountAuthorizer is Ownable {
             _numAuthorized--;
         }
     }
+
+    // Allows the current owner to transfer control of the contract to a newOwner.
+    function transferOwnership(address newOwner) public onlyOwner {
+        require(
+            newOwner != address(0) &&
+            _authorizers[newOwner].statusAuthorizer == StatusAuthorizer.ACTIVE
+        );
+
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+    }    
 }

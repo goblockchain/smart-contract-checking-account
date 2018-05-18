@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 import "./AccountTransaction.sol";
 
@@ -20,25 +20,9 @@ contract CheckingAccount is AccountTransaction {
     //Request tokens withdraw
     function withdraw(uint256 _amount, bytes32 _description) public onlyAuthorizer {
         require(_amount > 0);
+        require(address(this).balance >= _amount);
         transferTo(msg.sender, _amount, _description);
-    }
-
-    //Transfer Contract's ownership to another address
-    function transferContractOwnershipTo(address _to) public onlyOwner {
-        require(address(_to) != 0x0);
-        uint256 transactionId = _transactionChangeContractOwnershipIdx++;
-
-        TransactionChangeContractOwnership memory transaction;
-        transaction.from = msg.sender;
-        transaction.to = _to;
-        transaction.signatureCountColab = 0;
-        transaction.signatureCountAdviser = 0;
-
-        _transactionsChangeContractOwnership[transactionId] = transaction;
-        _pendingTransactionsChangeContractOwnership.push(transactionId);
-
-        emit TransactionChangeContractOwnershipCreated(msg.sender, _to, transactionId);
-    }  
+    } 
 
     function walletBalance() public view returns (uint256) {
         return address(this).balance;
@@ -46,9 +30,6 @@ contract CheckingAccount is AccountTransaction {
 
     //Transfer tokens from Contract's balance to another address
     function transferTo(address _to, uint256 _amount, bytes32 _description) private {
-        require(_amount >= 0);
-        require(address(this).balance >= _amount);
-        
         uint256 transactionId = _transactionIdx++;
 
         Transaction memory transaction;

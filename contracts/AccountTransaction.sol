@@ -1,6 +1,7 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./AccountAuthorizer.sol";
+
 
 contract AccountTransaction is AccountAuthorizer {
 
@@ -19,6 +20,7 @@ contract AccountTransaction is AccountAuthorizer {
 
     mapping (uint256 => Transaction) internal _transactions;
 
+    event LogDebug(string msg);
     event TransactionCancelled(uint256 transactionId);
     event TransactionSendTokenCreated(address from, address to, uint256 amount, uint256 transactionId);
     event TransactionSendTokenCompleted(address from, address to, uint256 amount, uint256 transactionId);
@@ -38,17 +40,12 @@ contract AccountTransaction is AccountAuthorizer {
         mapping (address => uint8) signaturesColabs;
         mapping (address => uint8) signaturesAdviser;
     }
-
-    //Modifier to validate the ownership
-    modifier validOwner() {
-        require(msg.sender == owner || _authorizers[msg.sender].statusAuthorizer == StatusAuthorizer.ACTIVE);
-        _;
-    }     
-
+  
     //Get the transation to send tokens
-    function getTransactionSendToken(uint256 _transactionId) public validOwner view 
+    function getTransactionSendToken(uint256 _transactionId) public onlyAuthorizer view 
                                             returns (address from, address to, uint256 amount, 
-                                            bytes32 description, uint256 date, uint8 signatureCountColab, uint8 signatureCountAdviser) 
+                                            bytes32 description, uint256 date, uint8 signatureCountColab,
+                                            uint8 signatureCountAdviser, StatusTransaction status) 
     {
         from = _transactions[_transactionId].from;
         to = _transactions[_transactionId].to;
@@ -57,11 +54,12 @@ contract AccountTransaction is AccountAuthorizer {
         date = _transactions[_transactionId].date;
         signatureCountColab = _transactions[_transactionId].signatureCountColab;
         signatureCountAdviser = _transactions[_transactionId].signatureCountAdviser;
-        return (from, to, amount, description, date, signatureCountColab, signatureCountAdviser);
+        status = _transactions[_transactionId].statusTransaction;
+        return (from, to, amount, description, date, signatureCountColab, signatureCountAdviser, status);
     }
 
     //Sign a transaction to send tokens
-    function signTransactionSendToken(uint256 _transactionId) public validOwner {
+    function signTransactionSendToken(uint256 _transactionId) public onlyAuthorizer {
 
         Transaction storage transaction = _transactions[_transactionId];
         // Transaction must exist
@@ -79,6 +77,7 @@ contract AccountTransaction is AccountAuthorizer {
         } else {
             // Cannot sign a transaction more than once
             assert(transaction.signaturesAdviser[msg.sender] == 0);
+            
             transaction.signaturesAdviser[msg.sender] = 1;
             transaction.signatureCountAdviser++;            
         }
@@ -89,14 +88,12 @@ contract AccountTransaction is AccountAuthorizer {
             require(address(this).balance >= transaction.amount);
             emit TransactionSendTokenCompleted(transaction.from, transaction.to, transaction.amount, _transactionId);
             transaction.to.transfer(transaction.amount);
-            deleteTransactionSendToken(_transactionId, StatusTransaction.SENDED);
+            updateStatusTransactionSendToken(_transactionId, StatusTransaction.SENDED);
         }
     }
 
     //Delete a transaction to send tokens
-    function deleteTransactionSendToken(uint256 _transactionId, StatusTransaction _statusTransaction) internal {
-        _pendingTransactions.length--;
-        delete _pendingTransactions[_pendingTransactions.length - 1];
+    function updateStatusTransactionSendToken(uint256 _transactionId, StatusTransaction _statusTransaction) internal {
         _transactions[_transactionId].statusTransaction = _statusTransaction;
     }
 
@@ -105,10 +102,5 @@ contract AccountTransaction is AccountAuthorizer {
         require(_transactions[_transactionId].statusTransaction == StatusTransaction.WAITING);
         _transactions[_transactionId].statusTransaction = StatusTransaction.CANCELLED;
         emit TransactionCancelled(_transactionId);
-    }
-
-    //Get the pending transations to send tokens
-    function getPendingTransactionsSendToken() public validOwner view returns (uint256[]) {
-        return _pendingTransactions;
-    }    
+    } 
 }
