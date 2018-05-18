@@ -34,8 +34,9 @@ contract AccountAuthorizer is Ownable {
     //Add transaction's authorizer
     function addAuthorizer(address _authorized, TypeAuthorizer _typeAuthorizer) public onlyOwner {
         require(_numAuthorized <= MAX_AUTHORIZERS);
-        require(_authorizers[_authorized]._address == 0x0 || authorizer.statusAuthorizer == StatusAuthorizer.INACTIVE);
-        require(_typeAuthorizer == TypeAuthorizer.COLAB || _typeAuthorizer == TypeAuthorizer.ADVISER);
+        require(_authorizers[_authorized]._address == 0x0 
+                || _authorizers[_authorized].statusAuthorizer == StatusAuthorizer.INACTIVE);
+
         _numAuthorized++;
     
         Authorizer memory authorizer;
@@ -48,7 +49,7 @@ contract AccountAuthorizer is Ownable {
     }
     
     //Remove transaction's authorizer
-    function removeAuthorizer(address _authorized)  public onlyOwner {
+    function removeAuthorizer(address _authorized) public onlyOwner {
         require(_numAuthorized > 0);
         _authorizers[_authorized].statusAuthorizer = StatusAuthorizer.INACTIVE;
         if (_numAuthorized > 0) {
