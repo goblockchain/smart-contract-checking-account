@@ -6,7 +6,7 @@ contract CheckingAccount is AccountTransaction {
 
     event DepositFunds(address from, uint256 amount);
     
-    function CheckingAccount() public {
+    constructor() public {
         _numAuthorized = 0;
         owner = msg.sender;
         addAuthorizer(msg.sender, TypeAuthorizer.ADVISER);
@@ -30,7 +30,7 @@ contract CheckingAccount is AccountTransaction {
 
     //Transfer tokens from Contract's balance to another address
     function transferTo(address _to, uint256 _amount, bytes32 _description) private {
-        uint256 transactionId = _transactionIdx++;
+        uint256 transactionId = ++_transactionIdx;
 
         Transaction memory transaction;
         transaction.from = msg.sender;

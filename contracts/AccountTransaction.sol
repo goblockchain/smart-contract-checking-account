@@ -12,7 +12,7 @@ contract AccountTransaction is AccountAuthorizer {
     uint256 internal _transactionIdx;
 
     //list the pending transations
-    uint256[] public _pendingTransactions;
+    uint256[] internal _pendingTransactions;
 
     //status of transactions
     enum StatusTransaction {WAITING, CANCELLED, SENDED}
@@ -41,6 +41,12 @@ contract AccountTransaction is AccountAuthorizer {
         mapping (address => uint8) signaturesAdviser;
     }
   
+    // get the list off transactions  
+    function getPendingTransactions() public view returns(uint256[]){
+        return _pendingTransactions;
+    }
+  
+
     //Get the transation to send tokens
     function getTransactionSendToken(uint256 _transactionId) public onlyAuthorizer view 
                                             returns (address from, address to, uint256 amount, 
