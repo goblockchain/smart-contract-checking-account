@@ -18,7 +18,7 @@ contract AccountTransaction is AccountAuthorizer {
     enum StatusTransaction {WAITING, CANCELLED, SENDED}
     StatusTransaction statusTransaction;    
 
-    mapping (uint256 => Transaction) internal _transactions;
+    mapping (uint256 => Transaction) public _transactions;
 
     event LogDebug(string msg);
     event TransactionCancelled(uint256 transactionId);
@@ -41,27 +41,9 @@ contract AccountTransaction is AccountAuthorizer {
         mapping (address => uint8) signaturesAdviser;
     }
   
-    // get the list off transactions  
+    // get the list of transactions  
     function getPendingTransactions() public view returns(uint256[]){
         return _pendingTransactions;
-    }
-  
-
-    //Get the transation to send tokens
-    function getTransactionSendToken(uint256 _transactionId) public onlyAuthorizer view 
-                                            returns (address from, address to, uint256 amount, 
-                                            bytes32 description, uint256 date, uint8 signatureCountColab,
-                                            uint8 signatureCountAdviser, StatusTransaction status) 
-    {
-        from = _transactions[_transactionId].from;
-        to = _transactions[_transactionId].to;
-        amount = _transactions[_transactionId].amount;
-        description = _transactions[_transactionId].description;
-        date = _transactions[_transactionId].date;
-        signatureCountColab = _transactions[_transactionId].signatureCountColab;
-        signatureCountAdviser = _transactions[_transactionId].signatureCountAdviser;
-        status = _transactions[_transactionId].statusTransaction;
-        return (from, to, amount, description, date, signatureCountColab, signatureCountAdviser, status);
     }
 
     //Sign a transaction to send tokens
