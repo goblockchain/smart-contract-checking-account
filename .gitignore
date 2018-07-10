@@ -1,2 +1,10 @@
 /node_modules
 node_modules
+<<<<<<< HEAD
+build
+.DS_Store
+=======
+
+/build
+build
+>>>>>>> ae74f2fe6929513fcc4db1f36b56532e0bb1b003

@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/goblockchain/smart-contract-checking-account#readme",
   "dependencies": {
+    "web3": "^0.20.6",
     "zeppelin-solidity": "1.6.0"
   }
 }
