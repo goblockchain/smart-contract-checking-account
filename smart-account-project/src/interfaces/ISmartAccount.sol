@@ -20,7 +20,7 @@ interface ISmartAccount {
     /// @notice it increases each time the user `payback()`. It diminishes when user doesn't inccurs debt multiple times. It can be used futurely for giving a usr specific rewards according to his/her score.
     function score(address usr) external view returns (int);
 
-    /// @notice callable by factory. It sets the config options for the Smart Account.
+    /// @notice callable by factory. It sets the config options for the Smart Account and registers tokens in tokens addresses.
     function init(
         uint companyId,
         string calldata company,
@@ -36,14 +36,22 @@ interface ISmartAccount {
         address[] calldata paymentTokens
     ) external returns (bool);
 
+    /// it returns token address from tokenIndex.
+    /// @param token token of which index we want.
+    function tokenIndex(address token) external view returns (uint256);
+
     /// @notice public mapping of tokenID -> token address in SmartAccount. Addresses are put into tokenIndex after sorting them in factory. These are the allowed tokens to be used as a allocation.
-    function tokenIndex(uint256 tokenIndex) external view returns (address);
+    function tokenAddress(uint256 tokenIndex) external view returns (address);
+
+    /// @notice gets a token from tokenIndex and check whether it's a erc20 (0), erc721(1) or erc1155(2).
+    /// @param tokenIndex index of token.
+    function tokenIndexToType(uint256 tokenIndex) external view returns (uint);
 
     /// @notice used by user to allocate funds and get debts. Make it have a `lock` modifier.
-    function allocateERC20(uint256 tokenIndex, uint256 amount) external;
+    function allocate(uint256 tokenIndex, uint256 amount) external;
 
     /// @notice it permits a user to give his credits to another user, but the debt will be calculated against the delegator, not the delegatee.
-    function allocateERC20Delegate(
+    function allocateDelegate(
         uint256 tokenIndex,
         uint256 amount,
         address to
@@ -58,7 +66,7 @@ interface ISmartAccount {
     /// @param v sig param
     /// @param r sig param
     /// @param s sig param
-    function allocateERC20WithPermit(
+    function allocateWithPermit(
         uint256 tokenIndex,
         uint256 amount,
         uint256 deadline,
@@ -78,7 +86,7 @@ interface ISmartAccount {
     /// @param v sig param
     /// @param r sig param
     /// @param s sig param
-    function batchAllocateERC20WithPermit(
+    function batchAllocateWithPermit(
         uint256[] calldata tokenIndexes,
         uint256[] calldata amounts,
         uint256[] calldata deadlines,
