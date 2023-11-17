@@ -2,29 +2,44 @@
 pragma solidity ^0.8.0;
 
 interface ISmartAccount {
-    /// @notice company's name.
+    /*╔═════════════════════════════╗
+      ║        VIEW FUNCTIONS       ║
+      ╚═════════════════════════════╝*/
+
+    /// @notice user's name.
     function name() external view returns (string memory);
 
-    /// @notice checks whether `account` is an authorized for the company
+    /// @notice checks whether `account` is authorized to modify user's smart account.
+    /// @dev It should always match the current admins in SAFactory. So, avoid passing in constants, but always make a call to IFactory.admins().
     /// @param account to verify
-    function auth(address account) external view returns (bool);
+    function admin(address account) external view returns (bool);
 
-    /// @notice mapping of user's current credit (>0) or debt (<0).
-    /// @param usr user for credit or debt to be retrieved.
-    function credit(address usr) external view returns (int);
+    /// @notice mapping of user's current credit (>0) or debt (<0) at any given time.
+    function credit() external view returns (int);
 
-    /// @notice mapping of user's max credit calculated from user's allocation. Consequentially, it is also the maxDebt for a user.
-    /// @param usr user for which max credit is retrieved.
-    function maxCredit(address usr) external view returns (uint256);
+    /// @notice user's max credit calculated from user's allocation. Consequentially, it is also the maxDebt for a user.
+    function maxCredit() external view returns (uint256);
 
     /// @notice it increases each time the user `payback()`. It diminishes when user doesn't inccurs debt multiple times. It can be used futurely for giving a usr specific rewards according to his/her score.
-    function score(address usr) external view returns (int);
+    function score() external view returns (int);
 
-    /// @notice callable by factory. It sets the config options for the Smart Account and registers tokens in tokens addresses.
+    /// @notice it returns the last timestamp the SA was updated.
+    /// @dev important for accountability to check whether all SAs in factory have all be updated around the same time.
+    function lastUpdateTimestamp() external view returns (uint);
+
+    /// it returns token address from tokenIndex.
+    /// @param token token of which index we want.
+    function tokenIndex(address token) external view returns (uint256);
+
+    /// @notice public mapping of tokenID -> token address in SmartAccount. Addresses are put into tokenIndex after sorting them in factory. These are the allowed tokens to be used as a allocation.
+    function tokenAddress(uint256 tokenIndex) external view returns (address);
+
+    /// @notice callable by SAFactory. It sets the config options for the Smart Account and registers tokens in tokens addresses.
+    /// @dev since the SA itself will pull the tokens from the user, user's approval of tokens to this contract should be handled inside the allocateWithPermit function.
     function init(
-        uint companyId,
-        string calldata company,
-        address[] calldata companyAdmins,
+        uint userId,
+        string calldata user,
+        address[] calldata admins,
         uint minAllocation,
         bool acceptsERC20Tokens,
         address[] calldata sortedPermittedERC20Tokens,
@@ -36,21 +51,18 @@ interface ISmartAccount {
         address[] calldata paymentTokens
     ) external returns (bool);
 
-    /// it returns token address from tokenIndex.
-    /// @param token token of which index we want.
-    function tokenIndex(address token) external view returns (uint256);
+    /// @notice storage variable that is either true or false. Use default values already registered in this Factory contract for the `create` function. If false, params should be given. If true, params can be of any value and they will be discarded.
+    /// @dev I thought of having all users use the same value, but as it is done in the TradFi industry, users are categorized into certain thresholds - there's the Itau, but there's also the Itau Personalité, for example. So, a customization should be made possible. So, functions sould be also be accessible to be modified by admins in SA.
+    function useDefault() external view returns (bool);
 
-    /// @notice public mapping of tokenID -> token address in SmartAccount. Addresses are put into tokenIndex after sorting them in factory. These are the allowed tokens to be used as a allocation.
-    function tokenAddress(uint256 tokenIndex) external view returns (address);
-
-    /// @notice gets a token from tokenIndex and check whether it's a erc20 (0), erc721(1) or erc1155(2).
-    /// @param tokenIndex index of token.
-    function tokenIndexToType(uint256 tokenIndex) external view returns (uint);
+    /*╔═════════════════════════════╗
+      ║      ADMIN FUNCTIONS        ║
+      ╚═════════════════════════════╝*/
 
     /// @notice used by user to allocate funds and get debts. Make it have a `lock` modifier.
     function allocate(uint256 tokenIndex, uint256 amount) external;
 
-    /// @notice it permits a user to give his credits to another user, but the debt will be calculated against the delegator, not the delegatee.
+    /// @notice it permits a user to give his credits to another user, but the debt will be calculated against this SA, not the SA of the `to`.
     function allocateDelegate(
         uint256 tokenIndex,
         uint256 amount,
@@ -97,21 +109,17 @@ interface ISmartAccount {
         bytes32[] calldata s
     ) external;
 
-    /// @notice only to be called by company's contract address. It's called when company updates the states of the user according to their usage of the credit card off-chain. It can be called in batches to avoid block-max-gas-limit revert error in the chain being used.
-    /// @param users user for state to be updated. Must be already a user whose allocated tokens in the SmartAccount.
-    /// @param amounts debt or credit of user in a given time. It is used to update the `credit` mapping.
-    function update(address[] memory users, int[] calldata amounts) external;
-
-    /// @notice used by user to cease his/her participation in the protocol
-    function cease(uint8 v, bytes32 r, bytes32 s, bytes memory data) external;
+    /// @notice only to be called by company's wallets addresses. It's called when company updates the states of the user according to their usage of the credit card off-chain. It can be called in batches to avoid block-max-gas-limit revert error in the chain being used.
+    /// @param amount debt or credit of user in a given time. It is used to update the `credit` mapping.
+    function update(int amount) external;
 
     /// @notice used by company to cease a user's participation in the protocol.
-    function cease(address usr) external;
+    function cease(uint8 v, bytes32 r, bytes32 s, bytes memory data) external;
 
-    /// @notice pause companies' mains functionalities. Callable only by Factory on deactivate.
+    /// @notice pause SA' mains functionalities. Callable only by Factory on deactivate.
     function pause() external;
 
-    /// @notice unpauses company's mains functionalities. Callable only by Factory on activate.
+    /// @notice unpauses SA's mains functionalities. Callable only by Factory on activate.
     function unpause() external;
 
     /// @notice function callable by company to withdraw any tokens directly transferred to this contract by accident or leftovers from solidity's rounding arithmetic. If token to be withdrawn is the zero address, withdraw ether from contract.
@@ -119,8 +127,27 @@ interface ISmartAccount {
     /// @param to to whom it should be given to, possibly being the user who sent it by accident.
     function skim(address token, address to) external returns (bool);
 
-    /// @notice We still need to decide how to penalize the user on-chain. This is fundamental to how the protocol will work. If the user does not fear being penalized, (s)he won't have any fear of incurring debt sequentially. One of the ways to do it on chain is to dimish user's score.
-    /// @param users users to be punished.
-    /// @param amounts amounts in which each user is to be punished.
-    function punish(address[] calldata users, uint amounts) external;
+    function setPaymentTokens(
+        address paymentTokens,
+        uint tokenType
+    ) external returns (address[] memory newPaymentTokens);
+
+    function setPermittedERC20Tokens(
+        address tokenAddress
+    ) external returns (address[] memory newPermittedERC20Tokens);
+
+    function setPermittedERC721Tokens(
+        address tokenAddress
+    ) external returns (address[] memory newPermittedERC721Tokens);
+
+    function setPermittedERC1155Tokens(
+        address tokenAddress
+    ) external returns (address[] memory);
+
+    function setPercentageFromAllocation(
+        uint percentageFromAllocation
+    ) external returns (uint newPercentageFromAllocation);
+
+    /// @notice it should be called within the `constructor` function saying wether it's gonna be true or false. Only callable by admins. Make the factory an admin as well.
+    function setUseDefault(bool useDefault) external returns (bool);
 }
