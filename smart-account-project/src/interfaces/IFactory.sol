@@ -33,7 +33,11 @@ interface ISAFactory {
       ║        SET FUNCTIONS        ║
       ╚═════════════════════════════╝*/
 
+    /// @notice it sets the minAllocation for a certain user. If userId == 0, then it sets the minAllocation for all future users.
+    /// @param userId the user for which the minAllocation will change. If 0, change in factory, and ,therefore, for all future users.
+    /// @param minAllocation min quantity of tokens the user will have to allocate in the Smart Account.
     function setMinAllocation(
+        uint userId,
         uint minAllocation
     ) external returns (uint newMinAllocation);
 
@@ -89,7 +93,7 @@ interface ISAFactory {
       ║     TO CALL SA FUNCTIONS    ║
       ╚═════════════════════════════╝*/
 
-    /// @notice callable only by goBlockchain. Have an id for each user. Sort permitted tokens to place them correctly in a tokenIndex mapping. address(0) must be the token of ID 0, so that we can avoid users passing in address(0) tokens. Like Uniswap, have a salt determined by specific user's address that can't be predicted, for example, using the custom name.
+    /// @notice callable only by goBlockchain. Have an id for each user. Sort permitted tokens to place them correctly in a tokenIndex mapping. address(0) must be the token of ID 0, so that we can avoid users passing in address(0) tokens. Like Uniswap, have a salt determined by specific user's address that can't be predicted, for example, using the custom name. Back/front-end needs to check whether there's a smart account for a user already. If not, make the user deposit the tokens in the factory, then user's funds are transferred to his smart account - to avoid company wasting gas if user requests a new factory to be created and (s)he doesn't deposit any tokens in the SA. Also, this is more efficient for the company because they don't have to pay two different txs.
     /// @param user user's name
     /// @param admins company wallets with access to modify state of the Smart Account.
     /// @param minAllocation min allowed allocation by user
@@ -101,9 +105,12 @@ interface ISAFactory {
     /// @param permittedERC1155Tokens permitted erc1155 tokens
     /// @param percentageFromAllocation percentage of allowcation given to user as credit.
     /// @param paymentTokens tokens allowed to be received as a payment for debt.
-    /// @param useDefault the smartAccount should be customized or it should use the default values registered in the Factory.
-    /// @return smartAccount user's smart account address.
-    /// @return userId user's ID generated upon creation.
+    /// @param includesNonce wether token includes nonce.
+    /// @param nonce nonce if includesNonce is true.
+    /// @param v sig param.
+    /// @param r sig param.
+    /// @param s sig param.
+    /// @param useDefault the smartAccount should be customized or it should use the default values registered in the Factory. Set to true by default in back-end.
     function create(
         string calldata user,
         address[] calldata admins,
@@ -116,12 +123,17 @@ interface ISAFactory {
         address[] calldata permittedERC1155Tokens,
         uint percentageFromAllocation,
         address[] calldata paymentTokens,
+        bool includesNonce, // some tokens, like DAI seem to have a nonce in their permit functions.
+        uint256 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s,
         bool useDefault
     ) external returns (address smartAccount, uint userId);
 
-    /// Called to update users's SA liabilities. This function will probably be called once a month to update user's states. This function can be used or a direct call to an user's SA can be made through its `update` function, at any given time.
+    /// @notice Called to update users's SA liabilities. This function will probably be called once a month to update user's states. This function can be used or a direct call to an user's SA can be made through its `update` function, at any given time. 1) The user will have his credit updated only when he allocates - which will be available only through the front-end. If a user does not deposit anything more than his initial deposit, only the company will be able to update his credit based on his off-chain card usage & repayment.
     /// @dev Those who have debt will be the ones that have not paid their bills. They should be punish()ed according to the decided punition.
-    /// @dev Those who have credit are probably those who've probably paid more than they should, in other to gain compoun credit.
+    /// @dev Those who have credit are probably those who've probably paid more than they should, in order to gain compound credit.
     /// @dev Those with a 0 are the ones who are neither in debt or in credit. They've paid their bills and are supposed to continue receiving credit for the following month.
     /// @param users these are the target SA of each of the users whose liability is being updated.
     /// @param liabilities this is the actual debt (<0) or credit(>0) the user has gained in at any time.
@@ -130,7 +142,7 @@ interface ISAFactory {
         int[] calldata liabilities
     ) external;
 
-    /// @notice We still need to decide how to penalize the user on-chain. This is fundamental to how the protocol will work. If the user does not fear being penalized, (s)he won't have any fear of incurring debt sequentially. One of the ways to do it on chain is to dimish user's score.
+    /// @notice We still need to decide how to penalize the user on-chain. This is fundamental to how the protocol will work. If the user does not fear being penalized, (s)he won't have any fear of incurring debt sequentially. One of the ways to do it on chain is to dimish user's score. The punish cannot take anymore tokens from the user by making them approve uint(-1) and us pulling them whenever the user's punished. The user may easily transfer his tokens to another account, making himself unpunished. So, we should actually use the tokens he has deposited in order to punish him. Question: 1) The contract will need to have been supplied with a good amount of ETH. If not, payments before the due date || parcial payments won't be supported because imagine the scenario where users come at different days to pay their bills but there's enough gas for the company to pay user's bills.
     /// @param usersIds users to be punished.
     /// @param amounts amounts in which each user is to be punished.
     function punish(uint[] calldata usersIds, int amounts) external;
@@ -149,6 +161,10 @@ interface ISAFactory {
     /// helper mapping to retrieve a SA associated to an user.
     /// @param userId the userId connected to their SmartAccount.
     function smartAccount(uint userId) external view returns (address);
+
+    /// @notice helper mapping to retrieve a SA assotiated to an user.
+    /// @param smartAccount address of smartAccount from user.
+    function userId(address smartAccount) external view returns (uint);
 
     /// @notice it retrieves users' scores for accountability.
     /// @param usersId user for which score will be checked.

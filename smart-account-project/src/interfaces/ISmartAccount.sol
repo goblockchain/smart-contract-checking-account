@@ -69,11 +69,11 @@ interface ISmartAccount {
         address to
     ) external;
 
-    /// Main function called by the company (or goblockchain?) to pull user funds to this contract and give him credit. `nonReentrant` function, but allowed to be called in different times for the same user to give him compound credit.
+    /// Main function called by the company (or goblockchain?) to pull user funds to this contract and give him credit. `nonReentrant` function, but allowed to be called in different times for the same user to give him compound credit. Function uses the safeTransferFrom with permit functionality to pull tokens. This function can only be callable by the company. Why? Because precification needs to bae handled off-chain. If user calls this function directly, he can send any amount of a depretiated token and his credit can be updated, making it so that he'll have paid less than his bills. So, front-end determines precification, and the user can deposit it. Yes, he can deposit at anytime, however, he can't call it directly. To support  payments before the due data, anytime the user allocates, his credit is updated. To support direct payments, make an `if` statement that if it's not the company the `sender`, user will pay in a stablecoin - probably tether which is centralized and seems to maintain price at $1 always. Then do the math to convert to real - check whether there's a REAL-like stable coin on chain - and then do the math to roundup user payment onchain. Check whether the function implementation is protected against the company making the factory a user as well.
     /// @param tokenIndex token to allocate
     /// @param amount amount of token to allocate
     /// @param deadline deadline for token to be allocated.
-    /// @param includesNonce does the token include a nonce (e.g. DAI)
+    /// @param includesNonce does the token include a nonce (e.g. DAI) Check whether a nonce can be 0 - since it probably can't, use it as a param to identify that there's no nonce.
     /// @param nonce tx's nonce for token allocation, if any.
     /// @param v sig param
     /// @param r sig param
