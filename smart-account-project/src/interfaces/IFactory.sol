@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 /**
  * @title ISAFactory
  * @author goBlockchain
- * @notice All these functions are to be called by admins only. This interface represents the functions in the Factory contract, which in turn represent the company.
+ * @notice All these functions are to be called by admins only. This interface represents the functions in the Factory contract, which in turn represent the company. Each company will have a factory contract, generator of the Smart Account contract. The flow is as follows: 1) The company's admins call the Factory.someFunction() and this function calls the smartAccount. The smartAccount is then updated accordingly.
  */
 
 interface ISAFactory {
@@ -77,7 +77,7 @@ interface ISAFactory {
       ║      BATCH FUNCTIONS        ║
       ╚═════════════════════════════╝*/
 
-    /// @notice to be used when new feature has come to the protocol.
+    /// @notice to be used when new feature has come to the protocol. Funds need to be retrieved from old smart accounts to new ones through the skim() function inside this function.
     /// @param userId id of user
     /// @param newSmartAccount new address of the contract with the new feature.
     function batchSetSmartAccounts(
@@ -93,8 +93,8 @@ interface ISAFactory {
       ║     TO CALL SA FUNCTIONS    ║
       ╚═════════════════════════════╝*/
 
-    /// @notice callable only by goBlockchain. Have an id for each user. Sort permitted tokens to place them correctly in a tokenIndex mapping. address(0) must be the token of ID 0, so that we can avoid users passing in address(0) tokens. Like Uniswap, have a salt determined by specific user's address that can't be predicted, for example, using the custom name. Back/front-end needs to check whether there's a smart account for a user already. If not, make the user deposit the tokens in the factory, then user's funds are transferred to his smart account - to avoid company wasting gas if user requests a new factory to be created and (s)he doesn't deposit any tokens in the SA. Also, this is more efficient for the company because they don't have to pay two different txs.
-    /// @param user user's name
+    /// @notice callable only by goBlockchain. Have an id for each user. Sort permitted tokens to place them correctly in a tokenIndex mapping. address(0) must be the token of ID 0, so that we can avoid users passing in address(0) tokens. Like Uniswap, have a salt determined by specific user's address that can't be predicted, for example, using the custom name. Back/front-end needs to check whether there's a smart account for a user already. If not, make the user deposit the tokens in the factory, then user's funds are transferred to his smart account - to avoid company wasting gas if user requests a new factory to be created and (s)he doesn't deposit any tokens in the SA. Also, this is more efficient for the company because they don't have to pay two different txs. In its creation - or make another function specifically for this, the smartAccount needs to approve the the factory for a token to get its funds at anytime.
+    /// @param user user's name.
     /// @param admins company wallets with access to modify state of the Smart Account.
     /// @param minAllocation min allowed allocation by user
     /// @param acceptERC20Tokens flag to allow/disallow erc20s allocations

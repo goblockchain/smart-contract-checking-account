@@ -122,7 +122,7 @@ interface ISmartAccount {
     /// @notice unpauses SA's mains functionalities. Callable only by Factory on activate.
     function unpause() external;
 
-    /// @notice function callable by company to withdraw any tokens directly transferred to this contract by accident or leftovers from solidity's rounding arithmetic. If token to be withdrawn is the zero address, withdraw ether from contract.
+    /// @notice function callable by company to withdraw any tokens directly transferred to this contract by accident or leftovers from solidity's rounding arithmetic. If token to be withdrawn is the zero address, withdraw ether from contract. This function should be able to retrieve any balance from this smart account in case of a smart account upgrade so that funds can be transferred to the new one. Use safeTransfer function from SafeERC20 inside here to handle different tokens.
     /// @param token token to be withdrawn.
     /// @param to to whom it should be given to, possibly being the user who sent it by accident.
     function skim(address token, address to) external returns (bool);
