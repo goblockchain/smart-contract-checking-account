@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.13;
 
 /**
  * @title ISAFactory
@@ -13,17 +13,22 @@ interface ISAFactory {
       ╚═════════════════════════════╝*/
 
     function addAdmin(
-        address admin
+        address _admin
     ) external returns (address[] memory newAdmins);
 
     function removeAdmin(
-        address admin
+        address _admin
     ) external returns (address[] memory newAdmins);
 
     /// @notice withdraws any tokens directly transferred to this contract or to any SA contract by accident. If token to be withdrawn is the zero address, withdraw ether from contract.
-    /// @param token token to be withdrawn.
-    /// @param to to whom it should be given to, possibly being the user who sent it by accident.
-    function skim(address token, address to) external returns (bool);
+    /// @param _token token to be withdrawn.
+    /// @param _to to whom it should be given to, possibly being the user who sent it by accident.
+    /// @param _id id of token if it's an NFT.
+    function skim(
+        address _token,
+        address _to,
+        uint _id
+    ) external returns (bool);
 
     /// @notice Marks user as inactive and pauses Smart Account user's contract. Refunds should be given to users, if any. Callable by goBlockchain only.
     /// @param userId ID of user to inactivate.
@@ -78,16 +83,16 @@ interface ISAFactory {
       ╚═════════════════════════════╝*/
 
     /// @notice to be used when new feature has come to the protocol. Funds need to be retrieved from old smart accounts to new ones through the skim() function inside this function.
-    /// @param userId id of user
-    /// @param newSmartAccount new address of the contract with the new feature.
+    /// @param _users id of user
+    /// @param _newSmartAccounts new address of the contract with the new feature.
     function batchSetSmartAccounts(
-        uint[] calldata userId,
-        address[] calldata newSmartAccount
+        uint[] calldata _users,
+        address[] calldata _newSmartAccounts
     ) external returns (bool);
 
-    function batchPause(address[] memory smartAccounts) external;
+    function batchPause(address[] calldata _users) external;
 
-    function batchUnpause(address[] memory smartAccounts) external;
+    function batchUnpause(address[] calldata _users) external;
 
     /*╔═════════════════════════════╗
       ║     TO CALL SA FUNCTIONS    ║
@@ -135,11 +140,11 @@ interface ISAFactory {
     /// @dev Those who have debt will be the ones that have not paid their bills. They should be punish()ed according to the decided punition.
     /// @dev Those who have credit are probably those who've probably paid more than they should, in order to gain compound credit.
     /// @dev Those with a 0 are the ones who are neither in debt or in credit. They've paid their bills and are supposed to continue receiving credit for the following month.
-    /// @param users these are the target SA of each of the users whose liability is being updated.
-    /// @param liabilities this is the actual debt (<0) or credit(>0) the user has gained in at any time.
+    /// @param _users these are the target SA of each of the users whose liability is being updated.
+    /// @param _liabilities this is the actual debt (<0) or credit(>0) the user has gained in at any time.
     function batchUpdate(
-        address[] memory users,
-        int[] calldata liabilities
+        address[] memory _users,
+        int[] calldata _liabilities
     ) external;
 
     /// @notice We still need to decide how to penalize the user on-chain. This is fundamental to how the protocol will work. If the user does not fear being penalized, (s)he won't have any fear of incurring debt sequentially. One of the ways to do it on chain is to dimish user's score. The punish cannot take anymore tokens from the user by making them approve uint(-1) and us pulling them whenever the user's punished. The user may easily transfer his tokens to another account, making himself unpunished. So, we should actually use the tokens he has deposited in order to punish him. Question: 1) The contract will need to have been supplied with a good amount of ETH. If not, payments before the due date || parcial payments won't be supported because imagine the scenario where users come at different days to pay their bills but there's enough gas for the company to pay user's bills.
@@ -162,22 +167,26 @@ interface ISAFactory {
     /// @param userId the userId connected to their SmartAccount.
     function smartAccount(uint userId) external view returns (address);
 
-    /// @notice helper mapping to retrieve a SA assotiated to an user.
-    /// @param smartAccount address of smartAccount from user.
-    function userId(address smartAccount) external view returns (uint);
+    /// @notice helper mapping to make sure user is part of the protocol.
+    /// @param _user address of smartAccount from user.
+    function users(address _user) external view returns (bool);
 
     /// @notice it retrieves users' scores for accountability.
-    /// @param usersId user for which score will be checked.
+    /// @param users user for which score will be checked.
     /// @return scores users scores to be retrieved.
     function scores(
-        uint[] calldata usersId
-    ) external view returns (int[] calldata scores);
+        uint[] calldata users
+    ) external view returns (int[] memory scores);
 
     /// @notice gets a token from tokenIndex and check whether it's a erc20 (0), erc721(1) or erc1155(2).
     /// @param tokenIndex index of token.
-    function tokenIndexToType(uint256 tokenIndex) external view returns (uint);
+    function tokenIndexToStandard(
+        uint256 tokenIndex
+    ) external view returns (uint);
 
-    /// @notice public mapping showing companies' status.
-    /// @param userId user whose status is being checked.
-    function active(uint userId) external view returns (bool);
+    enum TokenStandard {
+        isERC20, // 0
+        isERC721, // 1
+        isERC1155 // 2
+    }
 }
