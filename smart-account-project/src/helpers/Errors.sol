@@ -7,4 +7,6 @@ library Errors {
     error InvalidCalldata();
     error InvalidUser(address user);
     error ArrayLengthMismatch();
+    error Locked();
+    error Paused();
 }

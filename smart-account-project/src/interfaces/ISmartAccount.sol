@@ -14,7 +14,7 @@ interface ISmartAccount {
     /// @param account to verify
     function admin(address account) external view returns (bool);
 
-    /// @notice mapping of user's current credit (>0) or debt (<0) at any given time.
+    /// @notice user's current credit (>0) or debt (<0) at any given time.
     function credit() external view returns (int);
 
     /// @notice user's max credit calculated from user's allocation. Consequentially, it is also the maxDebt for a user.
@@ -25,14 +25,11 @@ interface ISmartAccount {
 
     /// @notice it returns the last timestamp the SA was updated.
     /// @dev important for accountability to check whether all SAs in factory have all be updated around the same time.
-    function lastUpdateTimestamp() external view returns (uint);
+    function lastUpdatedTimestamp() external view returns (uint);
 
-    /// it returns token address from tokenIndex.
-    /// @param token token of which index we want.
-    function tokenIndex(address token) external view returns (uint256);
-
-    /// @notice public mapping of tokenID -> token address in SmartAccount. Addresses are put into tokenIndex after sorting them in factory. These are the allowed tokens to be used as a allocation.
-    function tokenAddress(uint256 tokenIndex) external view returns (address);
+    /// @notice gets a token from its address and check whether it's a erc20 (0), erc721(1) or erc1155(2).
+    /// @param _token address of token.
+    function tokenToStandard(address _token) external view returns (uint);
 
     /// @notice callable by SAFactory. It sets the config options for the Smart Account and registers tokens in tokens addresses.
     /// @dev since the SA itself will pull the tokens from the user, user's approval of tokens to this contract should be handled inside the allocateWithPermit function.

@@ -99,8 +99,7 @@ interface ISAFactory {
       ╚═════════════════════════════╝*/
 
     /// @notice callable only by goBlockchain. Have an id for each user. Sort permitted tokens to place them correctly in a tokenIndex mapping. address(0) must be the token of ID 0, so that we can avoid users passing in address(0) tokens. Like Uniswap, have a salt determined by specific user's address that can't be predicted, for example, using the custom name. Back/front-end needs to check whether there's a smart account for a user already. If not, make the user deposit the tokens in the factory, then user's funds are transferred to his smart account - to avoid company wasting gas if user requests a new factory to be created and (s)he doesn't deposit any tokens in the SA. Also, this is more efficient for the company because they don't have to pay two different txs. In its creation - or make another function specifically for this, the smartAccount needs to approve the the factory for a token to get its funds at anytime.
-    /// @param user user's name.
-    /// @param admins company wallets with access to modify state of the Smart Account.
+    /// @param user user's name that is on his card. If it's allowed in Brazil to have any nickname on a credit card, possibly make it be user's nickname.
     /// @param minAllocation min allowed allocation by user
     /// @param acceptERC20Tokens flag to allow/disallow erc20s allocations
     /// @param permittedERC20Tokens permitted erc20 tokens
@@ -118,7 +117,6 @@ interface ISAFactory {
     /// @param useDefault the smartAccount should be customized or it should use the default values registered in the Factory. Set to true by default in back-end.
     function create(
         string calldata user,
-        address[] calldata admins,
         uint minAllocation,
         bool acceptERC20Tokens,
         address[] calldata permittedERC20Tokens,
@@ -134,7 +132,7 @@ interface ISAFactory {
         bytes32 r,
         bytes32 s,
         bool useDefault
-    ) external returns (address smartAccount, uint userId);
+    ) external returns (address user, address smartAccount);
 
     /// @notice Called to update users's SA liabilities. This function will probably be called once a month to update user's states. This function can be used or a direct call to an user's SA can be made through its `update` function, at any given time. 1) The user will have his credit updated only when he allocates - which will be available only through the front-end. If a user does not deposit anything more than his initial deposit, only the company will be able to update his credit based on his off-chain card usage & repayment.
     /// @dev Those who have debt will be the ones that have not paid their bills. They should be punish()ed according to the decided punition.
@@ -178,11 +176,9 @@ interface ISAFactory {
         uint[] calldata users
     ) external view returns (int[] memory scores);
 
-    /// @notice gets a token from tokenIndex and check whether it's a erc20 (0), erc721(1) or erc1155(2).
-    /// @param tokenIndex index of token.
-    function tokenIndexToStandard(
-        uint256 tokenIndex
-    ) external view returns (uint);
+    /// @notice gets a token from its address and check whether it's a erc20 (0), erc721(1) or erc1155(2).
+    /// @param _token address of token.
+    function tokenToStandard(address _token) external view returns (uint);
 
     enum TokenStandard {
         isERC20, // 0
