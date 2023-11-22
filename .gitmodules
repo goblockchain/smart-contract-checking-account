@@ -4,3 +4,6 @@
 [submodule "smart-account-project/lib/openzeppelin-contracts"]
 	path = smart-account-project/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "smart-account-project/lib/openzeppelin-contracts-upgradeable"]
+	path = smart-account-project/lib/openzeppelin-contracts-upgradeable
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable
