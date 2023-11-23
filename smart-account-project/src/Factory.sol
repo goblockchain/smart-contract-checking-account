@@ -15,8 +15,6 @@ import "../lib/openzeppelin-contracts/contracts/metatx/ERC2771Context.sol";
  */
 
 contract Factory is ISAFactory, ERC2771Forwarder, ERC2771Context {
-    uint256 public number;
-
     /*╔═════════════════════════════╗
       ║       STATE VARIABLES       ║
       ╚═════════════════════════════╝*/

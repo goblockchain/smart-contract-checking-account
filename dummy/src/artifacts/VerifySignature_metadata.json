@@ -1,0 +1,186 @@
+{
+	"compiler": {
+		"version": "0.8.23+commit.f704f362"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "_messageHash",
+						"type": "bytes32"
+					}
+				],
+				"name": "getEthSignedMessageHash",
+				"outputs": [
+					{
+						"internalType": "bytes32",
+						"name": "",
+						"type": "bytes32"
+					}
+				],
+				"stateMutability": "pure",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_to",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_message",
+						"type": "uint256"
+					}
+				],
+				"name": "getMessageHash",
+				"outputs": [
+					{
+						"internalType": "bytes32",
+						"name": "",
+						"type": "bytes32"
+					}
+				],
+				"stateMutability": "pure",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "_ethSignedMessageHash",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "bytes",
+						"name": "_signature",
+						"type": "bytes"
+					}
+				],
+				"name": "recoverSigner",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "pure",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes",
+						"name": "sig",
+						"type": "bytes"
+					}
+				],
+				"name": "splitSignature",
+				"outputs": [
+					{
+						"internalType": "bytes32",
+						"name": "r",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "s",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "uint8",
+						"name": "v",
+						"type": "uint8"
+					}
+				],
+				"stateMutability": "pure",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_signer",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_to",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_message",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bytes",
+						"name": "signature",
+						"type": "bytes"
+					}
+				],
+				"name": "verify",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "pure",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {
+				"getEthSignedMessageHash(bytes32)": {
+					"notice": "for 0x...b2, signature is: 0xe35664ee982c1e215a442884ed7722762837a15a505e1bf3aad7c560afb33c645fa41f1f547b27edccbbde088d6c68b1c731c637879d94f654020810392f975f1b"
+				},
+				"getMessageHash(address,uint256)": {
+					"notice": "This function returns the same regardless of who's calling it (pure) return: 0xde04b3e97a340583644438433dfc02a1c389def22b3ed841f9a0204c77e81bf9 goerli: hash = 0x3d9bef4d93a63d194967758b74b8cb66835d2dba655fb3eba4b1f840fcc7cb7b"
+				},
+				"verify(address,address,uint256,bytes)": {
+					"notice": "signer = 0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2 to = 0x0fC5025C764cE34df352757e82f7B5c4Df39A836 message = 0xde04b3e97a340583644438433dfc02a1c389def22b3ed841f9a0204c77e81bf9 signature = 0xe35664ee982c1e215a442884ed7722762837a15a505e1bf3aad7c560afb33c645fa41f1f547b27edccbbde088d6c68b1c731c637879d94f654020810392f975f1b"
+				}
+			},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"src/Message.sol": "VerifySignature"
+		},
+		"evmVersion": "shanghai",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"src/Message.sol": {
+			"keccak256": "0x4926458fef4e38d9d7c33b900b34204e1a9ece41cfbdfffb06fc56a00f17558f",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://ec27f422bc1e21bfbcc79a892a0f66aee5011527a1614fa379d78019b8cecf99",
+				"dweb:/ipfs/QmeM3QdPwBnqupkhAVMQhnDnJcYCKiZ9PKiMuWC4K4RhXQ"
+			]
+		}
+	},
+	"version": 1
+}
