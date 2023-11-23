@@ -1,0 +1,586 @@
+{
+	"deploy": {
+		"VM:-": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"main:1": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"ropsten:3": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"rinkeby:4": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"kovan:42": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"goerli:5": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"Custom": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		}
+	},
+	"data": {
+		"bytecode": {
+			"functionDebugData": {},
+			"generatedSources": [],
+			"linkReferences": {},
+			"object": "",
+			"opcodes": "",
+			"sourceMap": ""
+		},
+		"deployedBytecode": {
+			"functionDebugData": {},
+			"generatedSources": [],
+			"immutableReferences": {},
+			"linkReferences": {},
+			"object": "",
+			"opcodes": "",
+			"sourceMap": ""
+		},
+		"gasEstimates": null,
+		"methodIdentifiers": {
+			"admin(address)": "63a846f8",
+			"allocateDelegate(uint256,uint256,address)": "5d1a7355",
+			"allocateWithPermit(uint256,uint256,uint256,bool,uint256,uint8,bytes32,bytes32)": "ffc08b6d",
+			"batchAllocateWithPermit(uint256[],uint256[],uint256[],bool[],uint256[],uint8[],bytes32[],bytes32[])": "40affa94",
+			"cease(uint8,bytes32,bytes32,bytes)": "dd71a430",
+			"credit()": "a06d083c",
+			"init(uint256,string,address[],uint256,bool,address[],bool,address[],bool,address[],uint256,address[])": "8b1e7429",
+			"lastUpdatedTimestamp()": "fbaf894c",
+			"maxCredit()": "cfdad40a",
+			"name()": "06fdde03",
+			"pause()": "8456cb59",
+			"score()": "efedc669",
+			"setPaymentTokens(address,uint256)": "b66c484e",
+			"setPercentageFromAllocation(uint256)": "0ab9bb62",
+			"setPermittedERC1155Tokens(address)": "10c030a3",
+			"setPermittedERC20Tokens(address)": "de68a001",
+			"setPermittedERC721Tokens(address)": "5709d115",
+			"setUseDefault(bool)": "9d3c1c7b",
+			"skim(address,address)": "712b772f",
+			"tokenToStandard(address)": "c2bb8120",
+			"unpause()": "3f4ba83a",
+			"update(int256)": "6299a6ef",
+			"useDefault()": "c550a1ca"
+		}
+	},
+	"abi": [
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "account",
+					"type": "address"
+				}
+			],
+			"name": "admin",
+			"outputs": [
+				{
+					"internalType": "bool",
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "tokenIndex",
+					"type": "uint256"
+				},
+				{
+					"internalType": "uint256",
+					"name": "amount",
+					"type": "uint256"
+				},
+				{
+					"internalType": "address",
+					"name": "to",
+					"type": "address"
+				}
+			],
+			"name": "allocateDelegate",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "tokenIndex",
+					"type": "uint256"
+				},
+				{
+					"internalType": "uint256",
+					"name": "amount",
+					"type": "uint256"
+				},
+				{
+					"internalType": "uint256",
+					"name": "deadline",
+					"type": "uint256"
+				},
+				{
+					"internalType": "bool",
+					"name": "includesNonce",
+					"type": "bool"
+				},
+				{
+					"internalType": "uint256",
+					"name": "nonce",
+					"type": "uint256"
+				},
+				{
+					"internalType": "uint8",
+					"name": "v",
+					"type": "uint8"
+				},
+				{
+					"internalType": "bytes32",
+					"name": "r",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "bytes32",
+					"name": "s",
+					"type": "bytes32"
+				}
+			],
+			"name": "allocateWithPermit",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256[]",
+					"name": "tokenIndexes",
+					"type": "uint256[]"
+				},
+				{
+					"internalType": "uint256[]",
+					"name": "amounts",
+					"type": "uint256[]"
+				},
+				{
+					"internalType": "uint256[]",
+					"name": "deadlines",
+					"type": "uint256[]"
+				},
+				{
+					"internalType": "bool[]",
+					"name": "includesNonce",
+					"type": "bool[]"
+				},
+				{
+					"internalType": "uint256[]",
+					"name": "nonces",
+					"type": "uint256[]"
+				},
+				{
+					"internalType": "uint8[]",
+					"name": "v",
+					"type": "uint8[]"
+				},
+				{
+					"internalType": "bytes32[]",
+					"name": "r",
+					"type": "bytes32[]"
+				},
+				{
+					"internalType": "bytes32[]",
+					"name": "s",
+					"type": "bytes32[]"
+				}
+			],
+			"name": "batchAllocateWithPermit",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint8",
+					"name": "v",
+					"type": "uint8"
+				},
+				{
+					"internalType": "bytes32",
+					"name": "r",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "bytes32",
+					"name": "s",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "bytes",
+					"name": "data",
+					"type": "bytes"
+				}
+			],
+			"name": "cease",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "credit",
+			"outputs": [
+				{
+					"internalType": "int256",
+					"name": "",
+					"type": "int256"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "userId",
+					"type": "uint256"
+				},
+				{
+					"internalType": "string",
+					"name": "user",
+					"type": "string"
+				},
+				{
+					"internalType": "address[]",
+					"name": "admins",
+					"type": "address[]"
+				},
+				{
+					"internalType": "uint256",
+					"name": "minAllocation",
+					"type": "uint256"
+				},
+				{
+					"internalType": "bool",
+					"name": "acceptsERC20Tokens",
+					"type": "bool"
+				},
+				{
+					"internalType": "address[]",
+					"name": "sortedPermittedERC20Tokens",
+					"type": "address[]"
+				},
+				{
+					"internalType": "bool",
+					"name": "acceptsERC721Tokens",
+					"type": "bool"
+				},
+				{
+					"internalType": "address[]",
+					"name": "sortedPermittedERC721Tokens",
+					"type": "address[]"
+				},
+				{
+					"internalType": "bool",
+					"name": "acceptsERC1155Tokens",
+					"type": "bool"
+				},
+				{
+					"internalType": "address[]",
+					"name": "sortedPermittedERC1155Tokens",
+					"type": "address[]"
+				},
+				{
+					"internalType": "uint256",
+					"name": "percentageFromAllocation",
+					"type": "uint256"
+				},
+				{
+					"internalType": "address[]",
+					"name": "paymentTokens",
+					"type": "address[]"
+				}
+			],
+			"name": "init",
+			"outputs": [
+				{
+					"internalType": "bool",
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "lastUpdatedTimestamp",
+			"outputs": [
+				{
+					"internalType": "uint256",
+					"name": "",
+					"type": "uint256"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "maxCredit",
+			"outputs": [
+				{
+					"internalType": "uint256",
+					"name": "",
+					"type": "uint256"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "name",
+			"outputs": [
+				{
+					"internalType": "string",
+					"name": "",
+					"type": "string"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "pause",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "score",
+			"outputs": [
+				{
+					"internalType": "int256",
+					"name": "",
+					"type": "int256"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "paymentTokens",
+					"type": "address"
+				},
+				{
+					"internalType": "uint256",
+					"name": "tokenType",
+					"type": "uint256"
+				}
+			],
+			"name": "setPaymentTokens",
+			"outputs": [
+				{
+					"internalType": "address[]",
+					"name": "newPaymentTokens",
+					"type": "address[]"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "percentageFromAllocation",
+					"type": "uint256"
+				}
+			],
+			"name": "setPercentageFromAllocation",
+			"outputs": [
+				{
+					"internalType": "uint256",
+					"name": "newPercentageFromAllocation",
+					"type": "uint256"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "tokenAddress",
+					"type": "address"
+				}
+			],
+			"name": "setPermittedERC1155Tokens",
+			"outputs": [
+				{
+					"internalType": "address[]",
+					"name": "",
+					"type": "address[]"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "tokenAddress",
+					"type": "address"
+				}
+			],
+			"name": "setPermittedERC20Tokens",
+			"outputs": [
+				{
+					"internalType": "address[]",
+					"name": "newPermittedERC20Tokens",
+					"type": "address[]"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "tokenAddress",
+					"type": "address"
+				}
+			],
+			"name": "setPermittedERC721Tokens",
+			"outputs": [
+				{
+					"internalType": "address[]",
+					"name": "newPermittedERC721Tokens",
+					"type": "address[]"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bool",
+					"name": "useDefault",
+					"type": "bool"
+				}
+			],
+			"name": "setUseDefault",
+			"outputs": [
+				{
+					"internalType": "bool",
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "token",
+					"type": "address"
+				},
+				{
+					"internalType": "address",
+					"name": "to",
+					"type": "address"
+				}
+			],
+			"name": "skim",
+			"outputs": [
+				{
+					"internalType": "bool",
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "_token",
+					"type": "address"
+				}
+			],
+			"name": "tokenToStandard",
+			"outputs": [
+				{
+					"internalType": "uint256",
+					"name": "",
+					"type": "uint256"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "unpause",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "int256",
+					"name": "amount",
+					"type": "int256"
+				}
+			],
+			"name": "update",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "useDefault",
+			"outputs": [
+				{
+					"internalType": "bool",
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		}
+	]
+}

@@ -69,3 +69,4 @@ $ cast --help
 1. `IERC20.permit` function still requires the sender of the token to have gas in their wallets.
 2. Knowing the above, the right thing to implement is to find a metaTx interface.
 3. A good staking protocol that may allow us to accrue profit in user's funds is Synthetix or SushiSwap MasterChef.
+- [] In the NativeMetaTransaction contract, check how can we do batch transactions, like said in the IERC7221 contra, like said in the IERC7221 contract.

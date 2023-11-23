@@ -33,6 +33,7 @@ interface ISmartAccount {
 
     /// @notice callable by SAFactory. It sets the config options for the Smart Account and registers tokens in tokens addresses.
     /// @dev since the SA itself will pull the tokens from the user, user's approval of tokens to this contract should be handled inside the allocateWithPermit function.
+    /*
     function init(
         uint userId,
         string calldata user,
@@ -47,6 +48,7 @@ interface ISmartAccount {
         uint percentageFromAllocation,
         address[] calldata paymentTokens
     ) external returns (bool);
+    */
 
     /// @notice storage variable that is either true or false. Use default values already registered in this Factory contract for the `create` function. If false, params should be given. If true, params can be of any value and they will be discarded.
     /// @dev I thought of having all users use the same value, but as it is done in the TradFi industry, users are categorized into certain thresholds - there's the Itau, but there's also the Itau Personalité, for example. So, a customization should be made possible. So, functions sould be also be accessible to be modified by admins in SA.
@@ -57,7 +59,7 @@ interface ISmartAccount {
       ╚═════════════════════════════╝*/
 
     /// @notice used by user to allocate funds and get debts. Make it have a `lock` modifier.
-    function allocate(uint256 tokenIndex, uint256 amount) external;
+    // function allocate(uint256 tokenIndex, uint256 amount) external;
 
     /// @notice it permits a user to give his credits to another user, but the debt will be calculated against this SA, not the SA of the `to`.
     function allocateDelegate(

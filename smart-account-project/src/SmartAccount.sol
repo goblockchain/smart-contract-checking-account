@@ -4,8 +4,8 @@ pragma solidity ^0.8.13;
 import "./interfaces/IFactory.sol";
 import "./interfaces/ISmartAccount.sol";
 import "./helpers/Errors.sol";
-import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title SmartAccount
@@ -85,5 +85,89 @@ contract SmartAccount is ISmartAccount {
     function unpause() external {
         auth(msg.sender);
         paused = false;
+    }
+
+    // TODO: complexity is too big. Remember: modularity
+    /*
+    function init(
+        uint userId,
+        string calldata user,
+        address[] calldata admins,
+        uint minAllocation,
+        bool acceptsERC20Tokens,
+        address[] calldata sortedPermittedERC20Tokens,
+        bool acceptsERC721Tokens,
+        address[] calldata sortedPermittedERC721Tokens,
+        bool acceptsERC1155Tokens,
+        address[] calldata sortedPermittedERC1155Tokens,
+        uint percentageFromAllocation,
+        address[] calldata paymentTokens
+    ) external override returns (bool) {}
+    */
+
+    function allocate(uint256 tokenIndex, uint256 amount) external {}
+
+    function allocateDelegate(
+        uint256 tokenIndex,
+        uint256 amount,
+        address to
+    ) external override {}
+
+    function allocateWithPermit(
+        uint256 tokenIndex,
+        uint256 amount,
+        uint256 deadline,
+        bool includesNonce,
+        uint256 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external override {}
+
+    function batchAllocateWithPermit(
+        uint256[] calldata tokenIndexes,
+        uint256[] calldata amounts,
+        uint256[] calldata deadlines,
+        bool[] calldata includesNonce,
+        uint256[] calldata nonces,
+        uint8[] calldata v,
+        bytes32[] calldata r,
+        bytes32[] calldata s
+    ) external override {}
+
+    function update(int amount) external override {}
+
+    function cease(
+        uint8 v,
+        bytes32 r,
+        bytes32 s,
+        bytes memory data
+    ) external override {}
+
+    function skim(address token, address to) external override returns (bool) {}
+
+    function setPaymentTokens(
+        address paymentTokens,
+        uint tokenType
+    ) external override returns (address[] memory newPaymentTokens) {}
+
+    function setPermittedERC20Tokens(
+        address tokenAddress
+    ) external override returns (address[] memory newPermittedERC20Tokens) {}
+
+    function setPermittedERC721Tokens(
+        address tokenAddress
+    ) external override returns (address[] memory newPermittedERC721Tokens) {}
+
+    function setPermittedERC1155Tokens(
+        address tokenAddress
+    ) external override returns (address[] memory) {}
+
+    function setPercentageFromAllocation(
+        uint percentageFromAllocation
+    ) external override returns (uint newPercentageFromAllocation) {}
+
+    function setUseDefault(bool _useDefault) external override returns (bool) {
+        useDefault = _useDefault;
     }
 }

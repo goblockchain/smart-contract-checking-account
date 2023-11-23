@@ -1,0 +1,3413 @@
+{
+	"id": "d315c1f19680c9a45dea2b3ff9411859",
+	"_format": "hh-sol-build-info-1",
+	"solcVersion": "0.8.20",
+	"solcLongVersion": "0.8.20+commit.a1b79de6",
+	"input": {
+		"language": "Solidity",
+		"sources": {
+			"src/interfaces/ISmartAccount.sol": {
+				"content": "// SPDX-License-Identifier: SEE LICENSE IN LICENSE\npragma solidity ^0.8.13;\n\ninterface ISmartAccount {\n    /*╔═════════════════════════════╗\n      ║        VIEW FUNCTIONS       ║\n      ╚═════════════════════════════╝*/\n\n    /// @notice user's name.\n    function name() external view returns (string memory);\n\n    /// @notice checks whether `account` is authorized to modify user's smart account.\n    /// @dev It should always match the current admins in SAFactory. So, avoid passing in constants, but always make a call to IFactory.admins().\n    /// @param account to verify\n    function admin(address account) external view returns (bool);\n\n    /// @notice user's current credit (>0) or debt (<0) at any given time.\n    function credit() external view returns (int);\n\n    /// @notice user's max credit calculated from user's allocation. Consequentially, it is also the maxDebt for a user.\n    function maxCredit() external view returns (uint256);\n\n    /// @notice it increases each time the user `payback()`. It diminishes when user doesn't inccurs debt multiple times. It can be used futurely for giving a usr specific rewards according to his/her score.\n    function score() external view returns (int);\n\n    /// @notice it returns the last timestamp the SA was updated.\n    /// @dev important for accountability to check whether all SAs in factory have all be updated around the same time.\n    function lastUpdatedTimestamp() external view returns (uint);\n\n    /// @notice gets a token from its address and check whether it's a erc20 (0), erc721(1) or erc1155(2).\n    /// @param _token address of token.\n    function tokenToStandard(address _token) external view returns (uint);\n\n    /// @notice callable by SAFactory. It sets the config options for the Smart Account and registers tokens in tokens addresses.\n    /// @dev since the SA itself will pull the tokens from the user, user's approval of tokens to this contract should be handled inside the allocateWithPermit function.\n    function init(\n        uint userId,\n        string calldata user,\n        address[] calldata admins,\n        uint minAllocation,\n        bool acceptsERC20Tokens,\n        address[] calldata sortedPermittedERC20Tokens,\n        bool acceptsERC721Tokens,\n        address[] calldata sortedPermittedERC721Tokens,\n        bool acceptsERC1155Tokens,\n        address[] calldata sortedPermittedERC1155Tokens,\n        uint percentageFromAllocation,\n        address[] calldata paymentTokens\n    ) external returns (bool);\n\n    /// @notice storage variable that is either true or false. Use default values already registered in this Factory contract for the `create` function. If false, params should be given. If true, params can be of any value and they will be discarded.\n    /// @dev I thought of having all users use the same value, but as it is done in the TradFi industry, users are categorized into certain thresholds - there's the Itau, but there's also the Itau Personalité, for example. So, a customization should be made possible. So, functions sould be also be accessible to be modified by admins in SA.\n    function useDefault() external view returns (bool);\n\n    /*╔═════════════════════════════╗\n      ║      ADMIN FUNCTIONS        ║\n      ╚═════════════════════════════╝*/\n\n    /// @notice used by user to allocate funds and get debts. Make it have a `lock` modifier.\n    // function allocate(uint256 tokenIndex, uint256 amount) external;\n\n    /// @notice it permits a user to give his credits to another user, but the debt will be calculated against this SA, not the SA of the `to`.\n    function allocateDelegate(\n        uint256 tokenIndex,\n        uint256 amount,\n        address to\n    ) external;\n\n    /// Main function called by the company (or goblockchain?) to pull user funds to this contract and give him credit. `nonReentrant` function, but allowed to be called in different times for the same user to give him compound credit. Function uses the safeTransferFrom with permit functionality to pull tokens. This function can only be callable by the company. Why? Because precification needs to bae handled off-chain. If user calls this function directly, he can send any amount of a depretiated token and his credit can be updated, making it so that he'll have paid less than his bills. So, front-end determines precification, and the user can deposit it. Yes, he can deposit at anytime, however, he can't call it directly. To support  payments before the due data, anytime the user allocates, his credit is updated. To support direct payments, make an `if` statement that if it's not the company the `sender`, user will pay in a stablecoin - probably tether which is centralized and seems to maintain price at $1 always. Then do the math to convert to real - check whether there's a REAL-like stable coin on chain - and then do the math to roundup user payment onchain. Check whether the function implementation is protected against the company making the factory a user as well.\n    /// @param tokenIndex token to allocate\n    /// @param amount amount of token to allocate\n    /// @param deadline deadline for token to be allocated.\n    /// @param includesNonce does the token include a nonce (e.g. DAI) Check whether a nonce can be 0 - since it probably can't, use it as a param to identify that there's no nonce.\n    /// @param nonce tx's nonce for token allocation, if any.\n    /// @param v sig param\n    /// @param r sig param\n    /// @param s sig param\n    function allocateWithPermit(\n        uint256 tokenIndex,\n        uint256 amount,\n        uint256 deadline,\n        bool includesNonce, // some tokens, like DAI seem to have a nonce in their permit functions.\n        uint256 nonce,\n        uint8 v,\n        bytes32 r,\n        bytes32 s\n    ) external;\n\n    /// @notice Main function called by the company (or goblockchain?) to pull user funds to this contract and give him credit. `nonReentrant` function, but allowed to be called in different times for the same user to give him compound credit.\n    /// @param tokenIndexes tokens the user want to allocate to receive credit. Must be in inside the permitted tokens addresses chosen by the company.\n    /// @param amounts amounts of each token to be deposited.\n    /// @param deadlines deadlines for the transfers to happen.\n    /// @param includesNonce whether tokens use includes nonces\n    /// @param nonces nonces for tokens. Choose an arbitrary number those who haven't nonces\n    /// @param v sig param\n    /// @param r sig param\n    /// @param s sig param\n    function batchAllocateWithPermit(\n        uint256[] calldata tokenIndexes,\n        uint256[] calldata amounts,\n        uint256[] calldata deadlines,\n        bool[] calldata includesNonce, // some tokens, like DAI seem to have a nonce in their permit functions.\n        uint256[] calldata nonces,\n        uint8[] calldata v,\n        bytes32[] calldata r,\n        bytes32[] calldata s\n    ) external;\n\n    /// @notice only to be called by company's wallets addresses. It's called when company updates the states of the user according to their usage of the credit card off-chain. It can be called in batches to avoid block-max-gas-limit revert error in the chain being used.\n    /// @param amount debt or credit of user in a given time. It is used to update the `credit` mapping.\n    function update(int amount) external;\n\n    /// @notice used by company to cease a user's participation in the protocol.\n    function cease(uint8 v, bytes32 r, bytes32 s, bytes memory data) external;\n\n    /// @notice pause SA' mains functionalities. Callable only by Factory on deactivate.\n    function pause() external;\n\n    /// @notice unpauses SA's mains functionalities. Callable only by Factory on activate.\n    function unpause() external;\n\n    /// @notice function callable by company to withdraw any tokens directly transferred to this contract by accident or leftovers from solidity's rounding arithmetic. If token to be withdrawn is the zero address, withdraw ether from contract. This function should be able to retrieve any balance from this smart account in case of a smart account upgrade so that funds can be transferred to the new one. Use safeTransfer function from SafeERC20 inside here to handle different tokens.\n    /// @param token token to be withdrawn.\n    /// @param to to whom it should be given to, possibly being the user who sent it by accident.\n    function skim(address token, address to) external returns (bool);\n\n    function setPaymentTokens(\n        address paymentTokens,\n        uint tokenType\n    ) external returns (address[] memory newPaymentTokens);\n\n    function setPermittedERC20Tokens(\n        address tokenAddress\n    ) external returns (address[] memory newPermittedERC20Tokens);\n\n    function setPermittedERC721Tokens(\n        address tokenAddress\n    ) external returns (address[] memory newPermittedERC721Tokens);\n\n    function setPermittedERC1155Tokens(\n        address tokenAddress\n    ) external returns (address[] memory);\n\n    function setPercentageFromAllocation(\n        uint percentageFromAllocation\n    ) external returns (uint newPercentageFromAllocation);\n\n    /// @notice it should be called within the `constructor` function saying wether it's gonna be true or false. Only callable by admins. Make the factory an admin as well.\n    function setUseDefault(bool useDefault) external returns (bool);\n}\n"
+			}
+		},
+		"settings": {
+			"optimizer": {
+				"enabled": false,
+				"runs": 200
+			},
+			"outputSelection": {
+				"*": {
+					"": [
+						"ast"
+					],
+					"*": [
+						"abi",
+						"metadata",
+						"devdoc",
+						"userdoc",
+						"storageLayout",
+						"evm.legacyAssembly",
+						"evm.bytecode",
+						"evm.deployedBytecode",
+						"evm.methodIdentifiers",
+						"evm.gasEstimates",
+						"evm.assembly"
+					]
+				}
+			}
+		}
+	},
+	"output": {
+		"contracts": {
+			"src/interfaces/ISmartAccount.sol": {
+				"ISmartAccount": {
+					"abi": [
+						{
+							"inputs": [
+								{
+									"internalType": "address",
+									"name": "account",
+									"type": "address"
+								}
+							],
+							"name": "admin",
+							"outputs": [
+								{
+									"internalType": "bool",
+									"name": "",
+									"type": "bool"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "uint256",
+									"name": "tokenIndex",
+									"type": "uint256"
+								},
+								{
+									"internalType": "uint256",
+									"name": "amount",
+									"type": "uint256"
+								},
+								{
+									"internalType": "address",
+									"name": "to",
+									"type": "address"
+								}
+							],
+							"name": "allocateDelegate",
+							"outputs": [],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "uint256",
+									"name": "tokenIndex",
+									"type": "uint256"
+								},
+								{
+									"internalType": "uint256",
+									"name": "amount",
+									"type": "uint256"
+								},
+								{
+									"internalType": "uint256",
+									"name": "deadline",
+									"type": "uint256"
+								},
+								{
+									"internalType": "bool",
+									"name": "includesNonce",
+									"type": "bool"
+								},
+								{
+									"internalType": "uint256",
+									"name": "nonce",
+									"type": "uint256"
+								},
+								{
+									"internalType": "uint8",
+									"name": "v",
+									"type": "uint8"
+								},
+								{
+									"internalType": "bytes32",
+									"name": "r",
+									"type": "bytes32"
+								},
+								{
+									"internalType": "bytes32",
+									"name": "s",
+									"type": "bytes32"
+								}
+							],
+							"name": "allocateWithPermit",
+							"outputs": [],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "uint256[]",
+									"name": "tokenIndexes",
+									"type": "uint256[]"
+								},
+								{
+									"internalType": "uint256[]",
+									"name": "amounts",
+									"type": "uint256[]"
+								},
+								{
+									"internalType": "uint256[]",
+									"name": "deadlines",
+									"type": "uint256[]"
+								},
+								{
+									"internalType": "bool[]",
+									"name": "includesNonce",
+									"type": "bool[]"
+								},
+								{
+									"internalType": "uint256[]",
+									"name": "nonces",
+									"type": "uint256[]"
+								},
+								{
+									"internalType": "uint8[]",
+									"name": "v",
+									"type": "uint8[]"
+								},
+								{
+									"internalType": "bytes32[]",
+									"name": "r",
+									"type": "bytes32[]"
+								},
+								{
+									"internalType": "bytes32[]",
+									"name": "s",
+									"type": "bytes32[]"
+								}
+							],
+							"name": "batchAllocateWithPermit",
+							"outputs": [],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "uint8",
+									"name": "v",
+									"type": "uint8"
+								},
+								{
+									"internalType": "bytes32",
+									"name": "r",
+									"type": "bytes32"
+								},
+								{
+									"internalType": "bytes32",
+									"name": "s",
+									"type": "bytes32"
+								},
+								{
+									"internalType": "bytes",
+									"name": "data",
+									"type": "bytes"
+								}
+							],
+							"name": "cease",
+							"outputs": [],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"name": "credit",
+							"outputs": [
+								{
+									"internalType": "int256",
+									"name": "",
+									"type": "int256"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "uint256",
+									"name": "userId",
+									"type": "uint256"
+								},
+								{
+									"internalType": "string",
+									"name": "user",
+									"type": "string"
+								},
+								{
+									"internalType": "address[]",
+									"name": "admins",
+									"type": "address[]"
+								},
+								{
+									"internalType": "uint256",
+									"name": "minAllocation",
+									"type": "uint256"
+								},
+								{
+									"internalType": "bool",
+									"name": "acceptsERC20Tokens",
+									"type": "bool"
+								},
+								{
+									"internalType": "address[]",
+									"name": "sortedPermittedERC20Tokens",
+									"type": "address[]"
+								},
+								{
+									"internalType": "bool",
+									"name": "acceptsERC721Tokens",
+									"type": "bool"
+								},
+								{
+									"internalType": "address[]",
+									"name": "sortedPermittedERC721Tokens",
+									"type": "address[]"
+								},
+								{
+									"internalType": "bool",
+									"name": "acceptsERC1155Tokens",
+									"type": "bool"
+								},
+								{
+									"internalType": "address[]",
+									"name": "sortedPermittedERC1155Tokens",
+									"type": "address[]"
+								},
+								{
+									"internalType": "uint256",
+									"name": "percentageFromAllocation",
+									"type": "uint256"
+								},
+								{
+									"internalType": "address[]",
+									"name": "paymentTokens",
+									"type": "address[]"
+								}
+							],
+							"name": "init",
+							"outputs": [
+								{
+									"internalType": "bool",
+									"name": "",
+									"type": "bool"
+								}
+							],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"name": "lastUpdatedTimestamp",
+							"outputs": [
+								{
+									"internalType": "uint256",
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"name": "maxCredit",
+							"outputs": [
+								{
+									"internalType": "uint256",
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"name": "name",
+							"outputs": [
+								{
+									"internalType": "string",
+									"name": "",
+									"type": "string"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"name": "pause",
+							"outputs": [],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"name": "score",
+							"outputs": [
+								{
+									"internalType": "int256",
+									"name": "",
+									"type": "int256"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "address",
+									"name": "paymentTokens",
+									"type": "address"
+								},
+								{
+									"internalType": "uint256",
+									"name": "tokenType",
+									"type": "uint256"
+								}
+							],
+							"name": "setPaymentTokens",
+							"outputs": [
+								{
+									"internalType": "address[]",
+									"name": "newPaymentTokens",
+									"type": "address[]"
+								}
+							],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "uint256",
+									"name": "percentageFromAllocation",
+									"type": "uint256"
+								}
+							],
+							"name": "setPercentageFromAllocation",
+							"outputs": [
+								{
+									"internalType": "uint256",
+									"name": "newPercentageFromAllocation",
+									"type": "uint256"
+								}
+							],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "address",
+									"name": "tokenAddress",
+									"type": "address"
+								}
+							],
+							"name": "setPermittedERC1155Tokens",
+							"outputs": [
+								{
+									"internalType": "address[]",
+									"name": "",
+									"type": "address[]"
+								}
+							],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "address",
+									"name": "tokenAddress",
+									"type": "address"
+								}
+							],
+							"name": "setPermittedERC20Tokens",
+							"outputs": [
+								{
+									"internalType": "address[]",
+									"name": "newPermittedERC20Tokens",
+									"type": "address[]"
+								}
+							],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "address",
+									"name": "tokenAddress",
+									"type": "address"
+								}
+							],
+							"name": "setPermittedERC721Tokens",
+							"outputs": [
+								{
+									"internalType": "address[]",
+									"name": "newPermittedERC721Tokens",
+									"type": "address[]"
+								}
+							],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "bool",
+									"name": "useDefault",
+									"type": "bool"
+								}
+							],
+							"name": "setUseDefault",
+							"outputs": [
+								{
+									"internalType": "bool",
+									"name": "",
+									"type": "bool"
+								}
+							],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "address",
+									"name": "token",
+									"type": "address"
+								},
+								{
+									"internalType": "address",
+									"name": "to",
+									"type": "address"
+								}
+							],
+							"name": "skim",
+							"outputs": [
+								{
+									"internalType": "bool",
+									"name": "",
+									"type": "bool"
+								}
+							],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "address",
+									"name": "_token",
+									"type": "address"
+								}
+							],
+							"name": "tokenToStandard",
+							"outputs": [
+								{
+									"internalType": "uint256",
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"name": "unpause",
+							"outputs": [],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "int256",
+									"name": "amount",
+									"type": "int256"
+								}
+							],
+							"name": "update",
+							"outputs": [],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"name": "useDefault",
+							"outputs": [
+								{
+									"internalType": "bool",
+									"name": "",
+									"type": "bool"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						}
+					],
+					"devdoc": {
+						"kind": "dev",
+						"methods": {
+							"admin(address)": {
+								"details": "It should always match the current admins in SAFactory. So, avoid passing in constants, but always make a call to IFactory.admins().",
+								"params": {
+									"account": "to verify"
+								}
+							},
+							"allocateWithPermit(uint256,uint256,uint256,bool,uint256,uint8,bytes32,bytes32)": {
+								"params": {
+									"amount": "amount of token to allocate",
+									"deadline": "deadline for token to be allocated.",
+									"includesNonce": "does the token include a nonce (e.g. DAI) Check whether a nonce can be 0 - since it probably can't, use it as a param to identify that there's no nonce.",
+									"nonce": "tx's nonce for token allocation, if any.",
+									"r": "sig param",
+									"s": "sig param",
+									"tokenIndex": "token to allocate",
+									"v": "sig param"
+								}
+							},
+							"batchAllocateWithPermit(uint256[],uint256[],uint256[],bool[],uint256[],uint8[],bytes32[],bytes32[])": {
+								"params": {
+									"amounts": "amounts of each token to be deposited.",
+									"deadlines": "deadlines for the transfers to happen.",
+									"includesNonce": "whether tokens use includes nonces",
+									"nonces": "nonces for tokens. Choose an arbitrary number those who haven't nonces",
+									"r": "sig param",
+									"s": "sig param",
+									"tokenIndexes": "tokens the user want to allocate to receive credit. Must be in inside the permitted tokens addresses chosen by the company.",
+									"v": "sig param"
+								}
+							},
+							"init(uint256,string,address[],uint256,bool,address[],bool,address[],bool,address[],uint256,address[])": {
+								"details": "since the SA itself will pull the tokens from the user, user's approval of tokens to this contract should be handled inside the allocateWithPermit function."
+							},
+							"lastUpdatedTimestamp()": {
+								"details": "important for accountability to check whether all SAs in factory have all be updated around the same time."
+							},
+							"skim(address,address)": {
+								"params": {
+									"to": "to whom it should be given to, possibly being the user who sent it by accident.",
+									"token": "token to be withdrawn."
+								}
+							},
+							"tokenToStandard(address)": {
+								"params": {
+									"_token": "address of token."
+								}
+							},
+							"update(int256)": {
+								"params": {
+									"amount": "debt or credit of user in a given time. It is used to update the `credit` mapping."
+								}
+							},
+							"useDefault()": {
+								"details": "I thought of having all users use the same value, but as it is done in the TradFi industry, users are categorized into certain thresholds - there's the Itau, but there's also the Itau Personalité, for example. So, a customization should be made possible. So, functions sould be also be accessible to be modified by admins in SA."
+							}
+						},
+						"version": 1
+					},
+					"evm": {
+						"assembly": "",
+						"bytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"deployedBytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"immutableReferences": {},
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"gasEstimates": null,
+						"legacyAssembly": null,
+						"methodIdentifiers": {
+							"admin(address)": "63a846f8",
+							"allocateDelegate(uint256,uint256,address)": "5d1a7355",
+							"allocateWithPermit(uint256,uint256,uint256,bool,uint256,uint8,bytes32,bytes32)": "ffc08b6d",
+							"batchAllocateWithPermit(uint256[],uint256[],uint256[],bool[],uint256[],uint8[],bytes32[],bytes32[])": "40affa94",
+							"cease(uint8,bytes32,bytes32,bytes)": "dd71a430",
+							"credit()": "a06d083c",
+							"init(uint256,string,address[],uint256,bool,address[],bool,address[],bool,address[],uint256,address[])": "8b1e7429",
+							"lastUpdatedTimestamp()": "fbaf894c",
+							"maxCredit()": "cfdad40a",
+							"name()": "06fdde03",
+							"pause()": "8456cb59",
+							"score()": "efedc669",
+							"setPaymentTokens(address,uint256)": "b66c484e",
+							"setPercentageFromAllocation(uint256)": "0ab9bb62",
+							"setPermittedERC1155Tokens(address)": "10c030a3",
+							"setPermittedERC20Tokens(address)": "de68a001",
+							"setPermittedERC721Tokens(address)": "5709d115",
+							"setUseDefault(bool)": "9d3c1c7b",
+							"skim(address,address)": "712b772f",
+							"tokenToStandard(address)": "c2bb8120",
+							"unpause()": "3f4ba83a",
+							"update(int256)": "6299a6ef",
+							"useDefault()": "c550a1ca"
+						}
+					},
+					"metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"admin\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"tokenIndex\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"allocateDelegate\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"tokenIndex\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"includesNonce\",\"type\":\"bool\"},{\"internalType\":\"uint256\",\"name\":\"nonce\",\"type\":\"uint256\"},{\"internalType\":\"uint8\",\"name\":\"v\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"r\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"s\",\"type\":\"bytes32\"}],\"name\":\"allocateWithPermit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256[]\",\"name\":\"tokenIndexes\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"amounts\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"deadlines\",\"type\":\"uint256[]\"},{\"internalType\":\"bool[]\",\"name\":\"includesNonce\",\"type\":\"bool[]\"},{\"internalType\":\"uint256[]\",\"name\":\"nonces\",\"type\":\"uint256[]\"},{\"internalType\":\"uint8[]\",\"name\":\"v\",\"type\":\"uint8[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"r\",\"type\":\"bytes32[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"s\",\"type\":\"bytes32[]\"}],\"name\":\"batchAllocateWithPermit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint8\",\"name\":\"v\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"r\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"s\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"cease\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"credit\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"userId\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"user\",\"type\":\"string\"},{\"internalType\":\"address[]\",\"name\":\"admins\",\"type\":\"address[]\"},{\"internalType\":\"uint256\",\"name\":\"minAllocation\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"acceptsERC20Tokens\",\"type\":\"bool\"},{\"internalType\":\"address[]\",\"name\":\"sortedPermittedERC20Tokens\",\"type\":\"address[]\"},{\"internalType\":\"bool\",\"name\":\"acceptsERC721Tokens\",\"type\":\"bool\"},{\"internalType\":\"address[]\",\"name\":\"sortedPermittedERC721Tokens\",\"type\":\"address[]\"},{\"internalType\":\"bool\",\"name\":\"acceptsERC1155Tokens\",\"type\":\"bool\"},{\"internalType\":\"address[]\",\"name\":\"sortedPermittedERC1155Tokens\",\"type\":\"address[]\"},{\"internalType\":\"uint256\",\"name\":\"percentageFromAllocation\",\"type\":\"uint256\"},{\"internalType\":\"address[]\",\"name\":\"paymentTokens\",\"type\":\"address[]\"}],\"name\":\"init\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lastUpdatedTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxCredit\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pause\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"score\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"paymentTokens\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenType\",\"type\":\"uint256\"}],\"name\":\"setPaymentTokens\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"newPaymentTokens\",\"type\":\"address[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"percentageFromAllocation\",\"type\":\"uint256\"}],\"name\":\"setPercentageFromAllocation\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"newPercentageFromAllocation\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"tokenAddress\",\"type\":\"address\"}],\"name\":\"setPermittedERC1155Tokens\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"tokenAddress\",\"type\":\"address\"}],\"name\":\"setPermittedERC20Tokens\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"newPermittedERC20Tokens\",\"type\":\"address[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"tokenAddress\",\"type\":\"address\"}],\"name\":\"setPermittedERC721Tokens\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"newPermittedERC721Tokens\",\"type\":\"address[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bool\",\"name\":\"useDefault\",\"type\":\"bool\"}],\"name\":\"setUseDefault\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"skim\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"tokenToStandard\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"unpause\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"}],\"name\":\"update\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"useDefault\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"admin(address)\":{\"details\":\"It should always match the current admins in SAFactory. So, avoid passing in constants, but always make a call to IFactory.admins().\",\"params\":{\"account\":\"to verify\"}},\"allocateWithPermit(uint256,uint256,uint256,bool,uint256,uint8,bytes32,bytes32)\":{\"params\":{\"amount\":\"amount of token to allocate\",\"deadline\":\"deadline for token to be allocated.\",\"includesNonce\":\"does the token include a nonce (e.g. DAI) Check whether a nonce can be 0 - since it probably can't, use it as a param to identify that there's no nonce.\",\"nonce\":\"tx's nonce for token allocation, if any.\",\"r\":\"sig param\",\"s\":\"sig param\",\"tokenIndex\":\"token to allocate\",\"v\":\"sig param\"}},\"batchAllocateWithPermit(uint256[],uint256[],uint256[],bool[],uint256[],uint8[],bytes32[],bytes32[])\":{\"params\":{\"amounts\":\"amounts of each token to be deposited.\",\"deadlines\":\"deadlines for the transfers to happen.\",\"includesNonce\":\"whether tokens use includes nonces\",\"nonces\":\"nonces for tokens. Choose an arbitrary number those who haven't nonces\",\"r\":\"sig param\",\"s\":\"sig param\",\"tokenIndexes\":\"tokens the user want to allocate to receive credit. Must be in inside the permitted tokens addresses chosen by the company.\",\"v\":\"sig param\"}},\"init(uint256,string,address[],uint256,bool,address[],bool,address[],bool,address[],uint256,address[])\":{\"details\":\"since the SA itself will pull the tokens from the user, user's approval of tokens to this contract should be handled inside the allocateWithPermit function.\"},\"lastUpdatedTimestamp()\":{\"details\":\"important for accountability to check whether all SAs in factory have all be updated around the same time.\"},\"skim(address,address)\":{\"params\":{\"to\":\"to whom it should be given to, possibly being the user who sent it by accident.\",\"token\":\"token to be withdrawn.\"}},\"tokenToStandard(address)\":{\"params\":{\"_token\":\"address of token.\"}},\"update(int256)\":{\"params\":{\"amount\":\"debt or credit of user in a given time. It is used to update the `credit` mapping.\"}},\"useDefault()\":{\"details\":\"I thought of having all users use the same value, but as it is done in the TradFi industry, users are categorized into certain thresholds - there's the Itau, but there's also the Itau Personalit\\u00e9, for example. So, a customization should be made possible. So, functions sould be also be accessible to be modified by admins in SA.\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"admin(address)\":{\"notice\":\"checks whether `account` is authorized to modify user's smart account.\"},\"allocateDelegate(uint256,uint256,address)\":{\"notice\":\"it permits a user to give his credits to another user, but the debt will be calculated against this SA, not the SA of the `to`.\"},\"allocateWithPermit(uint256,uint256,uint256,bool,uint256,uint8,bytes32,bytes32)\":{\"notice\":\"Main function called by the company (or goblockchain?) to pull user funds to this contract and give him credit. `nonReentrant` function, but allowed to be called in different times for the same user to give him compound credit. Function uses the safeTransferFrom with permit functionality to pull tokens. This function can only be callable by the company. Why? Because precification needs to bae handled off-chain. If user calls this function directly, he can send any amount of a depretiated token and his credit can be updated, making it so that he'll have paid less than his bills. So, front-end determines precification, and the user can deposit it. Yes, he can deposit at anytime, however, he can't call it directly. To support  payments before the due data, anytime the user allocates, his credit is updated. To support direct payments, make an `if` statement that if it's not the company the `sender`, user will pay in a stablecoin - probably tether which is centralized and seems to maintain price at $1 always. Then do the math to convert to real - check whether there's a REAL-like stable coin on chain - and then do the math to roundup user payment onchain. Check whether the function implementation is protected against the company making the factory a user as well.\"},\"batchAllocateWithPermit(uint256[],uint256[],uint256[],bool[],uint256[],uint8[],bytes32[],bytes32[])\":{\"notice\":\"Main function called by the company (or goblockchain?) to pull user funds to this contract and give him credit. `nonReentrant` function, but allowed to be called in different times for the same user to give him compound credit.\"},\"cease(uint8,bytes32,bytes32,bytes)\":{\"notice\":\"used by company to cease a user's participation in the protocol.\"},\"credit()\":{\"notice\":\"user's current credit (>0) or debt (<0) at any given time.\"},\"init(uint256,string,address[],uint256,bool,address[],bool,address[],bool,address[],uint256,address[])\":{\"notice\":\"callable by SAFactory. It sets the config options for the Smart Account and registers tokens in tokens addresses.\"},\"lastUpdatedTimestamp()\":{\"notice\":\"it returns the last timestamp the SA was updated.\"},\"maxCredit()\":{\"notice\":\"user's max credit calculated from user's allocation. Consequentially, it is also the maxDebt for a user.\"},\"name()\":{\"notice\":\"user's name.\"},\"pause()\":{\"notice\":\"pause SA' mains functionalities. Callable only by Factory on deactivate.\"},\"score()\":{\"notice\":\"it increases each time the user `payback()`. It diminishes when user doesn't inccurs debt multiple times. It can be used futurely for giving a usr specific rewards according to his/her score.\"},\"setUseDefault(bool)\":{\"notice\":\"it should be called within the `constructor` function saying wether it's gonna be true or false. Only callable by admins. Make the factory an admin as well.\"},\"skim(address,address)\":{\"notice\":\"function callable by company to withdraw any tokens directly transferred to this contract by accident or leftovers from solidity's rounding arithmetic. If token to be withdrawn is the zero address, withdraw ether from contract. This function should be able to retrieve any balance from this smart account in case of a smart account upgrade so that funds can be transferred to the new one. Use safeTransfer function from SafeERC20 inside here to handle different tokens.\"},\"tokenToStandard(address)\":{\"notice\":\"gets a token from its address and check whether it's a erc20 (0), erc721(1) or erc1155(2).\"},\"unpause()\":{\"notice\":\"unpauses SA's mains functionalities. Callable only by Factory on activate.\"},\"update(int256)\":{\"notice\":\"only to be called by company's wallets addresses. It's called when company updates the states of the user according to their usage of the credit card off-chain. It can be called in batches to avoid block-max-gas-limit revert error in the chain being used.\"},\"useDefault()\":{\"notice\":\"storage variable that is either true or false. Use default values already registered in this Factory contract for the `create` function. If false, params should be given. If true, params can be of any value and they will be discarded.\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/interfaces/ISmartAccount.sol\":\"ISmartAccount\"},\"evmVersion\":\"shanghai\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"src/interfaces/ISmartAccount.sol\":{\"keccak256\":\"0xc87b4ede6373d2c98b7afe83d86379c9c62a316ca3772751cce4a5c86d31ced7\",\"license\":\"SEE LICENSE IN LICENSE\",\"urls\":[\"bzz-raw://c75ff8fd19e07915b71bf450fe631f6b1259786133e48515431d31c8af16598f\",\"dweb:/ipfs/QmYjdwwWCBGfarnVusdLFXH15epwPQa5dsP6bQL7gj4AcU\"]}},\"version\":1}",
+					"storageLayout": {
+						"storage": [],
+						"types": null
+					},
+					"userdoc": {
+						"kind": "user",
+						"methods": {
+							"admin(address)": {
+								"notice": "checks whether `account` is authorized to modify user's smart account."
+							},
+							"allocateDelegate(uint256,uint256,address)": {
+								"notice": "it permits a user to give his credits to another user, but the debt will be calculated against this SA, not the SA of the `to`."
+							},
+							"allocateWithPermit(uint256,uint256,uint256,bool,uint256,uint8,bytes32,bytes32)": {
+								"notice": "Main function called by the company (or goblockchain?) to pull user funds to this contract and give him credit. `nonReentrant` function, but allowed to be called in different times for the same user to give him compound credit. Function uses the safeTransferFrom with permit functionality to pull tokens. This function can only be callable by the company. Why? Because precification needs to bae handled off-chain. If user calls this function directly, he can send any amount of a depretiated token and his credit can be updated, making it so that he'll have paid less than his bills. So, front-end determines precification, and the user can deposit it. Yes, he can deposit at anytime, however, he can't call it directly. To support  payments before the due data, anytime the user allocates, his credit is updated. To support direct payments, make an `if` statement that if it's not the company the `sender`, user will pay in a stablecoin - probably tether which is centralized and seems to maintain price at $1 always. Then do the math to convert to real - check whether there's a REAL-like stable coin on chain - and then do the math to roundup user payment onchain. Check whether the function implementation is protected against the company making the factory a user as well."
+							},
+							"batchAllocateWithPermit(uint256[],uint256[],uint256[],bool[],uint256[],uint8[],bytes32[],bytes32[])": {
+								"notice": "Main function called by the company (or goblockchain?) to pull user funds to this contract and give him credit. `nonReentrant` function, but allowed to be called in different times for the same user to give him compound credit."
+							},
+							"cease(uint8,bytes32,bytes32,bytes)": {
+								"notice": "used by company to cease a user's participation in the protocol."
+							},
+							"credit()": {
+								"notice": "user's current credit (>0) or debt (<0) at any given time."
+							},
+							"init(uint256,string,address[],uint256,bool,address[],bool,address[],bool,address[],uint256,address[])": {
+								"notice": "callable by SAFactory. It sets the config options for the Smart Account and registers tokens in tokens addresses."
+							},
+							"lastUpdatedTimestamp()": {
+								"notice": "it returns the last timestamp the SA was updated."
+							},
+							"maxCredit()": {
+								"notice": "user's max credit calculated from user's allocation. Consequentially, it is also the maxDebt for a user."
+							},
+							"name()": {
+								"notice": "user's name."
+							},
+							"pause()": {
+								"notice": "pause SA' mains functionalities. Callable only by Factory on deactivate."
+							},
+							"score()": {
+								"notice": "it increases each time the user `payback()`. It diminishes when user doesn't inccurs debt multiple times. It can be used futurely for giving a usr specific rewards according to his/her score."
+							},
+							"setUseDefault(bool)": {
+								"notice": "it should be called within the `constructor` function saying wether it's gonna be true or false. Only callable by admins. Make the factory an admin as well."
+							},
+							"skim(address,address)": {
+								"notice": "function callable by company to withdraw any tokens directly transferred to this contract by accident or leftovers from solidity's rounding arithmetic. If token to be withdrawn is the zero address, withdraw ether from contract. This function should be able to retrieve any balance from this smart account in case of a smart account upgrade so that funds can be transferred to the new one. Use safeTransfer function from SafeERC20 inside here to handle different tokens."
+							},
+							"tokenToStandard(address)": {
+								"notice": "gets a token from its address and check whether it's a erc20 (0), erc721(1) or erc1155(2)."
+							},
+							"unpause()": {
+								"notice": "unpauses SA's mains functionalities. Callable only by Factory on activate."
+							},
+							"update(int256)": {
+								"notice": "only to be called by company's wallets addresses. It's called when company updates the states of the user according to their usage of the credit card off-chain. It can be called in batches to avoid block-max-gas-limit revert error in the chain being used."
+							},
+							"useDefault()": {
+								"notice": "storage variable that is either true or false. Use default values already registered in this Factory contract for the `create` function. If false, params should be given. If true, params can be of any value and they will be discarded."
+							}
+						},
+						"version": 1
+					}
+				}
+			}
+		},
+		"sources": {
+			"src/interfaces/ISmartAccount.sol": {
+				"ast": {
+					"absolutePath": "src/interfaces/ISmartAccount.sol",
+					"exportedSymbols": {
+						"ISmartAccount": [
+							232
+						]
+					},
+					"id": 233,
+					"license": "SEE LICENSE IN LICENSE",
+					"nodeType": "SourceUnit",
+					"nodes": [
+						{
+							"id": 1,
+							"literals": [
+								"solidity",
+								"^",
+								"0.8",
+								".13"
+							],
+							"nodeType": "PragmaDirective",
+							"src": "51:24:0"
+						},
+						{
+							"abstract": false,
+							"baseContracts": [],
+							"canonicalName": "ISmartAccount",
+							"contractDependencies": [],
+							"contractKind": "interface",
+							"fullyImplemented": false,
+							"id": 232,
+							"linearizedBaseContracts": [
+								232
+							],
+							"name": "ISmartAccount",
+							"nameLocation": "87:13:0",
+							"nodeType": "ContractDefinition",
+							"nodes": [
+								{
+									"documentation": {
+										"id": 2,
+										"nodeType": "StructuredDocumentation",
+										"src": "352:24:0",
+										"text": "@notice user's name."
+									},
+									"functionSelector": "06fdde03",
+									"id": 7,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "name",
+									"nameLocation": "390:4:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 3,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "394:2:0"
+									},
+									"returnParameters": {
+										"id": 6,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 5,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 7,
+												"src": "420:13:0",
+												"stateVariable": false,
+												"storageLocation": "memory",
+												"typeDescriptions": {
+													"typeIdentifier": "t_string_memory_ptr",
+													"typeString": "string"
+												},
+												"typeName": {
+													"id": 4,
+													"name": "string",
+													"nodeType": "ElementaryTypeName",
+													"src": "420:6:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_string_storage_ptr",
+														"typeString": "string"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "419:15:0"
+									},
+									"scope": 232,
+									"src": "381:54:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 8,
+										"nodeType": "StructuredDocumentation",
+										"src": "441:261:0",
+										"text": "@notice checks whether `account` is authorized to modify user's smart account.\n @dev It should always match the current admins in SAFactory. So, avoid passing in constants, but always make a call to IFactory.admins().\n @param account to verify"
+									},
+									"functionSelector": "63a846f8",
+									"id": 15,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "admin",
+									"nameLocation": "716:5:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 11,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 10,
+												"mutability": "mutable",
+												"name": "account",
+												"nameLocation": "730:7:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 15,
+												"src": "722:15:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 9,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "722:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "721:17:0"
+									},
+									"returnParameters": {
+										"id": 14,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 13,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 15,
+												"src": "762:4:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bool",
+													"typeString": "bool"
+												},
+												"typeName": {
+													"id": 12,
+													"name": "bool",
+													"nodeType": "ElementaryTypeName",
+													"src": "762:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bool",
+														"typeString": "bool"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "761:6:0"
+									},
+									"scope": 232,
+									"src": "707:61:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 16,
+										"nodeType": "StructuredDocumentation",
+										"src": "774:70:0",
+										"text": "@notice user's current credit (>0) or debt (<0) at any given time."
+									},
+									"functionSelector": "a06d083c",
+									"id": 21,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "credit",
+									"nameLocation": "858:6:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 17,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "864:2:0"
+									},
+									"returnParameters": {
+										"id": 20,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 19,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 21,
+												"src": "890:3:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_int256",
+													"typeString": "int256"
+												},
+												"typeName": {
+													"id": 18,
+													"name": "int",
+													"nodeType": "ElementaryTypeName",
+													"src": "890:3:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_int256",
+														"typeString": "int256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "889:5:0"
+									},
+									"scope": 232,
+									"src": "849:46:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 22,
+										"nodeType": "StructuredDocumentation",
+										"src": "901:116:0",
+										"text": "@notice user's max credit calculated from user's allocation. Consequentially, it is also the maxDebt for a user."
+									},
+									"functionSelector": "cfdad40a",
+									"id": 27,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "maxCredit",
+									"nameLocation": "1031:9:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 23,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "1040:2:0"
+									},
+									"returnParameters": {
+										"id": 26,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 25,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 27,
+												"src": "1066:7:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 24,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "1066:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "1065:9:0"
+									},
+									"scope": 232,
+									"src": "1022:53:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 28,
+										"nodeType": "StructuredDocumentation",
+										"src": "1081:203:0",
+										"text": "@notice it increases each time the user `payback()`. It diminishes when user doesn't inccurs debt multiple times. It can be used futurely for giving a usr specific rewards according to his/her score."
+									},
+									"functionSelector": "efedc669",
+									"id": 33,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "score",
+									"nameLocation": "1298:5:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 29,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "1303:2:0"
+									},
+									"returnParameters": {
+										"id": 32,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 31,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 33,
+												"src": "1329:3:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_int256",
+													"typeString": "int256"
+												},
+												"typeName": {
+													"id": 30,
+													"name": "int",
+													"nodeType": "ElementaryTypeName",
+													"src": "1329:3:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_int256",
+														"typeString": "int256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "1328:5:0"
+									},
+									"scope": 232,
+									"src": "1289:45:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 34,
+										"nodeType": "StructuredDocumentation",
+										"src": "1340:181:0",
+										"text": "@notice it returns the last timestamp the SA was updated.\n @dev important for accountability to check whether all SAs in factory have all be updated around the same time."
+									},
+									"functionSelector": "fbaf894c",
+									"id": 39,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "lastUpdatedTimestamp",
+									"nameLocation": "1535:20:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 35,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "1555:2:0"
+									},
+									"returnParameters": {
+										"id": 38,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 37,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 39,
+												"src": "1581:4:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 36,
+													"name": "uint",
+													"nodeType": "ElementaryTypeName",
+													"src": "1581:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "1580:6:0"
+									},
+									"scope": 232,
+									"src": "1526:61:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 40,
+										"nodeType": "StructuredDocumentation",
+										"src": "1593:142:0",
+										"text": "@notice gets a token from its address and check whether it's a erc20 (0), erc721(1) or erc1155(2).\n @param _token address of token."
+									},
+									"functionSelector": "c2bb8120",
+									"id": 47,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "tokenToStandard",
+									"nameLocation": "1749:15:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 43,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 42,
+												"mutability": "mutable",
+												"name": "_token",
+												"nameLocation": "1773:6:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 47,
+												"src": "1765:14:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 41,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "1765:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "1764:16:0"
+									},
+									"returnParameters": {
+										"id": 46,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 45,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 47,
+												"src": "1804:4:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 44,
+													"name": "uint",
+													"nodeType": "ElementaryTypeName",
+													"src": "1804:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "1803:6:0"
+									},
+									"scope": 232,
+									"src": "1740:70:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 48,
+										"nodeType": "StructuredDocumentation",
+										"src": "1816:295:0",
+										"text": "@notice callable by SAFactory. It sets the config options for the Smart Account and registers tokens in tokens addresses.\n @dev since the SA itself will pull the tokens from the user, user's approval of tokens to this contract should be handled inside the allocateWithPermit function."
+									},
+									"functionSelector": "8b1e7429",
+									"id": 82,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "init",
+									"nameLocation": "2125:4:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 78,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 50,
+												"mutability": "mutable",
+												"name": "userId",
+												"nameLocation": "2144:6:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 82,
+												"src": "2139:11:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 49,
+													"name": "uint",
+													"nodeType": "ElementaryTypeName",
+													"src": "2139:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 52,
+												"mutability": "mutable",
+												"name": "user",
+												"nameLocation": "2176:4:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 82,
+												"src": "2160:20:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_string_calldata_ptr",
+													"typeString": "string"
+												},
+												"typeName": {
+													"id": 51,
+													"name": "string",
+													"nodeType": "ElementaryTypeName",
+													"src": "2160:6:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_string_storage_ptr",
+														"typeString": "string"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 55,
+												"mutability": "mutable",
+												"name": "admins",
+												"nameLocation": "2209:6:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 82,
+												"src": "2190:25:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_address_$dyn_calldata_ptr",
+													"typeString": "address[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 53,
+														"name": "address",
+														"nodeType": "ElementaryTypeName",
+														"src": "2190:7:0",
+														"stateMutability": "nonpayable",
+														"typeDescriptions": {
+															"typeIdentifier": "t_address",
+															"typeString": "address"
+														}
+													},
+													"id": 54,
+													"nodeType": "ArrayTypeName",
+													"src": "2190:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_address_$dyn_storage_ptr",
+														"typeString": "address[]"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 57,
+												"mutability": "mutable",
+												"name": "minAllocation",
+												"nameLocation": "2230:13:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 82,
+												"src": "2225:18:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 56,
+													"name": "uint",
+													"nodeType": "ElementaryTypeName",
+													"src": "2225:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 59,
+												"mutability": "mutable",
+												"name": "acceptsERC20Tokens",
+												"nameLocation": "2258:18:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 82,
+												"src": "2253:23:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bool",
+													"typeString": "bool"
+												},
+												"typeName": {
+													"id": 58,
+													"name": "bool",
+													"nodeType": "ElementaryTypeName",
+													"src": "2253:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bool",
+														"typeString": "bool"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 62,
+												"mutability": "mutable",
+												"name": "sortedPermittedERC20Tokens",
+												"nameLocation": "2305:26:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 82,
+												"src": "2286:45:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_address_$dyn_calldata_ptr",
+													"typeString": "address[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 60,
+														"name": "address",
+														"nodeType": "ElementaryTypeName",
+														"src": "2286:7:0",
+														"stateMutability": "nonpayable",
+														"typeDescriptions": {
+															"typeIdentifier": "t_address",
+															"typeString": "address"
+														}
+													},
+													"id": 61,
+													"nodeType": "ArrayTypeName",
+													"src": "2286:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_address_$dyn_storage_ptr",
+														"typeString": "address[]"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 64,
+												"mutability": "mutable",
+												"name": "acceptsERC721Tokens",
+												"nameLocation": "2346:19:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 82,
+												"src": "2341:24:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bool",
+													"typeString": "bool"
+												},
+												"typeName": {
+													"id": 63,
+													"name": "bool",
+													"nodeType": "ElementaryTypeName",
+													"src": "2341:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bool",
+														"typeString": "bool"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 67,
+												"mutability": "mutable",
+												"name": "sortedPermittedERC721Tokens",
+												"nameLocation": "2394:27:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 82,
+												"src": "2375:46:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_address_$dyn_calldata_ptr",
+													"typeString": "address[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 65,
+														"name": "address",
+														"nodeType": "ElementaryTypeName",
+														"src": "2375:7:0",
+														"stateMutability": "nonpayable",
+														"typeDescriptions": {
+															"typeIdentifier": "t_address",
+															"typeString": "address"
+														}
+													},
+													"id": 66,
+													"nodeType": "ArrayTypeName",
+													"src": "2375:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_address_$dyn_storage_ptr",
+														"typeString": "address[]"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 69,
+												"mutability": "mutable",
+												"name": "acceptsERC1155Tokens",
+												"nameLocation": "2436:20:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 82,
+												"src": "2431:25:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bool",
+													"typeString": "bool"
+												},
+												"typeName": {
+													"id": 68,
+													"name": "bool",
+													"nodeType": "ElementaryTypeName",
+													"src": "2431:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bool",
+														"typeString": "bool"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 72,
+												"mutability": "mutable",
+												"name": "sortedPermittedERC1155Tokens",
+												"nameLocation": "2485:28:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 82,
+												"src": "2466:47:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_address_$dyn_calldata_ptr",
+													"typeString": "address[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 70,
+														"name": "address",
+														"nodeType": "ElementaryTypeName",
+														"src": "2466:7:0",
+														"stateMutability": "nonpayable",
+														"typeDescriptions": {
+															"typeIdentifier": "t_address",
+															"typeString": "address"
+														}
+													},
+													"id": 71,
+													"nodeType": "ArrayTypeName",
+													"src": "2466:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_address_$dyn_storage_ptr",
+														"typeString": "address[]"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 74,
+												"mutability": "mutable",
+												"name": "percentageFromAllocation",
+												"nameLocation": "2528:24:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 82,
+												"src": "2523:29:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 73,
+													"name": "uint",
+													"nodeType": "ElementaryTypeName",
+													"src": "2523:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 77,
+												"mutability": "mutable",
+												"name": "paymentTokens",
+												"nameLocation": "2581:13:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 82,
+												"src": "2562:32:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_address_$dyn_calldata_ptr",
+													"typeString": "address[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 75,
+														"name": "address",
+														"nodeType": "ElementaryTypeName",
+														"src": "2562:7:0",
+														"stateMutability": "nonpayable",
+														"typeDescriptions": {
+															"typeIdentifier": "t_address",
+															"typeString": "address"
+														}
+													},
+													"id": 76,
+													"nodeType": "ArrayTypeName",
+													"src": "2562:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_address_$dyn_storage_ptr",
+														"typeString": "address[]"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "2129:471:0"
+									},
+									"returnParameters": {
+										"id": 81,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 80,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 82,
+												"src": "2619:4:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bool",
+													"typeString": "bool"
+												},
+												"typeName": {
+													"id": 79,
+													"name": "bool",
+													"nodeType": "ElementaryTypeName",
+													"src": "2619:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bool",
+														"typeString": "bool"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "2618:6:0"
+									},
+									"scope": 232,
+									"src": "2116:509:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 83,
+										"nodeType": "StructuredDocumentation",
+										"src": "2631:589:0",
+										"text": "@notice storage variable that is either true or false. Use default values already registered in this Factory contract for the `create` function. If false, params should be given. If true, params can be of any value and they will be discarded.\n @dev I thought of having all users use the same value, but as it is done in the TradFi industry, users are categorized into certain thresholds - there's the Itau, but there's also the Itau Personalité, for example. So, a customization should be made possible. So, functions sould be also be accessible to be modified by admins in SA."
+									},
+									"functionSelector": "c550a1ca",
+									"id": 88,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "useDefault",
+									"nameLocation": "3234:10:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 84,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "3244:2:0"
+									},
+									"returnParameters": {
+										"id": 87,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 86,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 88,
+												"src": "3270:4:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bool",
+													"typeString": "bool"
+												},
+												"typeName": {
+													"id": 85,
+													"name": "bool",
+													"nodeType": "ElementaryTypeName",
+													"src": "3270:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bool",
+														"typeString": "bool"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "3269:6:0"
+									},
+									"scope": 232,
+									"src": "3225:51:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 89,
+										"nodeType": "StructuredDocumentation",
+										"src": "3693:139:0",
+										"text": "@notice it permits a user to give his credits to another user, but the debt will be calculated against this SA, not the SA of the `to`."
+									},
+									"functionSelector": "5d1a7355",
+									"id": 98,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "allocateDelegate",
+									"nameLocation": "3846:16:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 96,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 91,
+												"mutability": "mutable",
+												"name": "tokenIndex",
+												"nameLocation": "3880:10:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 98,
+												"src": "3872:18:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 90,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "3872:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 93,
+												"mutability": "mutable",
+												"name": "amount",
+												"nameLocation": "3908:6:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 98,
+												"src": "3900:14:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 92,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "3900:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 95,
+												"mutability": "mutable",
+												"name": "to",
+												"nameLocation": "3932:2:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 98,
+												"src": "3924:10:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 94,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "3924:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "3862:78:0"
+									},
+									"returnParameters": {
+										"id": 97,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "3949:0:0"
+									},
+									"scope": 232,
+									"src": "3837:113:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 99,
+										"nodeType": "StructuredDocumentation",
+										"src": "3956:1761:0",
+										"text": "Main function called by the company (or goblockchain?) to pull user funds to this contract and give him credit. `nonReentrant` function, but allowed to be called in different times for the same user to give him compound credit. Function uses the safeTransferFrom with permit functionality to pull tokens. This function can only be callable by the company. Why? Because precification needs to bae handled off-chain. If user calls this function directly, he can send any amount of a depretiated token and his credit can be updated, making it so that he'll have paid less than his bills. So, front-end determines precification, and the user can deposit it. Yes, he can deposit at anytime, however, he can't call it directly. To support  payments before the due data, anytime the user allocates, his credit is updated. To support direct payments, make an `if` statement that if it's not the company the `sender`, user will pay in a stablecoin - probably tether which is centralized and seems to maintain price at $1 always. Then do the math to convert to real - check whether there's a REAL-like stable coin on chain - and then do the math to roundup user payment onchain. Check whether the function implementation is protected against the company making the factory a user as well.\n @param tokenIndex token to allocate\n @param amount amount of token to allocate\n @param deadline deadline for token to be allocated.\n @param includesNonce does the token include a nonce (e.g. DAI) Check whether a nonce can be 0 - since it probably can't, use it as a param to identify that there's no nonce.\n @param nonce tx's nonce for token allocation, if any.\n @param v sig param\n @param r sig param\n @param s sig param"
+									},
+									"functionSelector": "ffc08b6d",
+									"id": 118,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "allocateWithPermit",
+									"nameLocation": "5731:18:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 116,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 101,
+												"mutability": "mutable",
+												"name": "tokenIndex",
+												"nameLocation": "5767:10:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 118,
+												"src": "5759:18:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 100,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "5759:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 103,
+												"mutability": "mutable",
+												"name": "amount",
+												"nameLocation": "5795:6:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 118,
+												"src": "5787:14:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 102,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "5787:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 105,
+												"mutability": "mutable",
+												"name": "deadline",
+												"nameLocation": "5819:8:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 118,
+												"src": "5811:16:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 104,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "5811:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 107,
+												"mutability": "mutable",
+												"name": "includesNonce",
+												"nameLocation": "5842:13:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 118,
+												"src": "5837:18:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bool",
+													"typeString": "bool"
+												},
+												"typeName": {
+													"id": 106,
+													"name": "bool",
+													"nodeType": "ElementaryTypeName",
+													"src": "5837:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bool",
+														"typeString": "bool"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 109,
+												"mutability": "mutable",
+												"name": "nonce",
+												"nameLocation": "5946:5:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 118,
+												"src": "5938:13:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 108,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "5938:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 111,
+												"mutability": "mutable",
+												"name": "v",
+												"nameLocation": "5967:1:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 118,
+												"src": "5961:7:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint8",
+													"typeString": "uint8"
+												},
+												"typeName": {
+													"id": 110,
+													"name": "uint8",
+													"nodeType": "ElementaryTypeName",
+													"src": "5961:5:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint8",
+														"typeString": "uint8"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 113,
+												"mutability": "mutable",
+												"name": "r",
+												"nameLocation": "5986:1:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 118,
+												"src": "5978:9:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes32",
+													"typeString": "bytes32"
+												},
+												"typeName": {
+													"id": 112,
+													"name": "bytes32",
+													"nodeType": "ElementaryTypeName",
+													"src": "5978:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes32",
+														"typeString": "bytes32"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 115,
+												"mutability": "mutable",
+												"name": "s",
+												"nameLocation": "6005:1:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 118,
+												"src": "5997:9:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes32",
+													"typeString": "bytes32"
+												},
+												"typeName": {
+													"id": 114,
+													"name": "bytes32",
+													"nodeType": "ElementaryTypeName",
+													"src": "5997:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes32",
+														"typeString": "bytes32"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "5749:263:0"
+									},
+									"returnParameters": {
+										"id": 117,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "6021:0:0"
+									},
+									"scope": 232,
+									"src": "5722:300:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 119,
+										"nodeType": "StructuredDocumentation",
+										"src": "6028:755:0",
+										"text": "@notice Main function called by the company (or goblockchain?) to pull user funds to this contract and give him credit. `nonReentrant` function, but allowed to be called in different times for the same user to give him compound credit.\n @param tokenIndexes tokens the user want to allocate to receive credit. Must be in inside the permitted tokens addresses chosen by the company.\n @param amounts amounts of each token to be deposited.\n @param deadlines deadlines for the transfers to happen.\n @param includesNonce whether tokens use includes nonces\n @param nonces nonces for tokens. Choose an arbitrary number those who haven't nonces\n @param v sig param\n @param r sig param\n @param s sig param"
+									},
+									"functionSelector": "40affa94",
+									"id": 146,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "batchAllocateWithPermit",
+									"nameLocation": "6797:23:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 144,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 122,
+												"mutability": "mutable",
+												"name": "tokenIndexes",
+												"nameLocation": "6849:12:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 146,
+												"src": "6830:31:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_uint256_$dyn_calldata_ptr",
+													"typeString": "uint256[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 120,
+														"name": "uint256",
+														"nodeType": "ElementaryTypeName",
+														"src": "6830:7:0",
+														"typeDescriptions": {
+															"typeIdentifier": "t_uint256",
+															"typeString": "uint256"
+														}
+													},
+													"id": 121,
+													"nodeType": "ArrayTypeName",
+													"src": "6830:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_uint256_$dyn_storage_ptr",
+														"typeString": "uint256[]"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 125,
+												"mutability": "mutable",
+												"name": "amounts",
+												"nameLocation": "6890:7:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 146,
+												"src": "6871:26:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_uint256_$dyn_calldata_ptr",
+													"typeString": "uint256[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 123,
+														"name": "uint256",
+														"nodeType": "ElementaryTypeName",
+														"src": "6871:7:0",
+														"typeDescriptions": {
+															"typeIdentifier": "t_uint256",
+															"typeString": "uint256"
+														}
+													},
+													"id": 124,
+													"nodeType": "ArrayTypeName",
+													"src": "6871:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_uint256_$dyn_storage_ptr",
+														"typeString": "uint256[]"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 128,
+												"mutability": "mutable",
+												"name": "deadlines",
+												"nameLocation": "6926:9:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 146,
+												"src": "6907:28:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_uint256_$dyn_calldata_ptr",
+													"typeString": "uint256[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 126,
+														"name": "uint256",
+														"nodeType": "ElementaryTypeName",
+														"src": "6907:7:0",
+														"typeDescriptions": {
+															"typeIdentifier": "t_uint256",
+															"typeString": "uint256"
+														}
+													},
+													"id": 127,
+													"nodeType": "ArrayTypeName",
+													"src": "6907:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_uint256_$dyn_storage_ptr",
+														"typeString": "uint256[]"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 131,
+												"mutability": "mutable",
+												"name": "includesNonce",
+												"nameLocation": "6961:13:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 146,
+												"src": "6945:29:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_bool_$dyn_calldata_ptr",
+													"typeString": "bool[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 129,
+														"name": "bool",
+														"nodeType": "ElementaryTypeName",
+														"src": "6945:4:0",
+														"typeDescriptions": {
+															"typeIdentifier": "t_bool",
+															"typeString": "bool"
+														}
+													},
+													"id": 130,
+													"nodeType": "ArrayTypeName",
+													"src": "6945:6:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_bool_$dyn_storage_ptr",
+														"typeString": "bool[]"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 134,
+												"mutability": "mutable",
+												"name": "nonces",
+												"nameLocation": "7076:6:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 146,
+												"src": "7057:25:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_uint256_$dyn_calldata_ptr",
+													"typeString": "uint256[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 132,
+														"name": "uint256",
+														"nodeType": "ElementaryTypeName",
+														"src": "7057:7:0",
+														"typeDescriptions": {
+															"typeIdentifier": "t_uint256",
+															"typeString": "uint256"
+														}
+													},
+													"id": 133,
+													"nodeType": "ArrayTypeName",
+													"src": "7057:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_uint256_$dyn_storage_ptr",
+														"typeString": "uint256[]"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 137,
+												"mutability": "mutable",
+												"name": "v",
+												"nameLocation": "7109:1:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 146,
+												"src": "7092:18:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_uint8_$dyn_calldata_ptr",
+													"typeString": "uint8[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 135,
+														"name": "uint8",
+														"nodeType": "ElementaryTypeName",
+														"src": "7092:5:0",
+														"typeDescriptions": {
+															"typeIdentifier": "t_uint8",
+															"typeString": "uint8"
+														}
+													},
+													"id": 136,
+													"nodeType": "ArrayTypeName",
+													"src": "7092:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_uint8_$dyn_storage_ptr",
+														"typeString": "uint8[]"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 140,
+												"mutability": "mutable",
+												"name": "r",
+												"nameLocation": "7139:1:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 146,
+												"src": "7120:20:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_bytes32_$dyn_calldata_ptr",
+													"typeString": "bytes32[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 138,
+														"name": "bytes32",
+														"nodeType": "ElementaryTypeName",
+														"src": "7120:7:0",
+														"typeDescriptions": {
+															"typeIdentifier": "t_bytes32",
+															"typeString": "bytes32"
+														}
+													},
+													"id": 139,
+													"nodeType": "ArrayTypeName",
+													"src": "7120:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_bytes32_$dyn_storage_ptr",
+														"typeString": "bytes32[]"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 143,
+												"mutability": "mutable",
+												"name": "s",
+												"nameLocation": "7169:1:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 146,
+												"src": "7150:20:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_bytes32_$dyn_calldata_ptr",
+													"typeString": "bytes32[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 141,
+														"name": "bytes32",
+														"nodeType": "ElementaryTypeName",
+														"src": "7150:7:0",
+														"typeDescriptions": {
+															"typeIdentifier": "t_bytes32",
+															"typeString": "bytes32"
+														}
+													},
+													"id": 142,
+													"nodeType": "ArrayTypeName",
+													"src": "7150:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_bytes32_$dyn_storage_ptr",
+														"typeString": "bytes32[]"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "6820:356:0"
+									},
+									"returnParameters": {
+										"id": 145,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "7185:0:0"
+									},
+									"scope": 232,
+									"src": "6788:398:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 147,
+										"nodeType": "StructuredDocumentation",
+										"src": "7192:372:0",
+										"text": "@notice only to be called by company's wallets addresses. It's called when company updates the states of the user according to their usage of the credit card off-chain. It can be called in batches to avoid block-max-gas-limit revert error in the chain being used.\n @param amount debt or credit of user in a given time. It is used to update the `credit` mapping."
+									},
+									"functionSelector": "6299a6ef",
+									"id": 152,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "update",
+									"nameLocation": "7578:6:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 150,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 149,
+												"mutability": "mutable",
+												"name": "amount",
+												"nameLocation": "7589:6:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 152,
+												"src": "7585:10:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_int256",
+													"typeString": "int256"
+												},
+												"typeName": {
+													"id": 148,
+													"name": "int",
+													"nodeType": "ElementaryTypeName",
+													"src": "7585:3:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_int256",
+														"typeString": "int256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "7584:12:0"
+									},
+									"returnParameters": {
+										"id": 151,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "7605:0:0"
+									},
+									"scope": 232,
+									"src": "7569:37:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 153,
+										"nodeType": "StructuredDocumentation",
+										"src": "7612:76:0",
+										"text": "@notice used by company to cease a user's participation in the protocol."
+									},
+									"functionSelector": "dd71a430",
+									"id": 164,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "cease",
+									"nameLocation": "7702:5:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 162,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 155,
+												"mutability": "mutable",
+												"name": "v",
+												"nameLocation": "7714:1:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 164,
+												"src": "7708:7:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint8",
+													"typeString": "uint8"
+												},
+												"typeName": {
+													"id": 154,
+													"name": "uint8",
+													"nodeType": "ElementaryTypeName",
+													"src": "7708:5:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint8",
+														"typeString": "uint8"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 157,
+												"mutability": "mutable",
+												"name": "r",
+												"nameLocation": "7725:1:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 164,
+												"src": "7717:9:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes32",
+													"typeString": "bytes32"
+												},
+												"typeName": {
+													"id": 156,
+													"name": "bytes32",
+													"nodeType": "ElementaryTypeName",
+													"src": "7717:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes32",
+														"typeString": "bytes32"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 159,
+												"mutability": "mutable",
+												"name": "s",
+												"nameLocation": "7736:1:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 164,
+												"src": "7728:9:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes32",
+													"typeString": "bytes32"
+												},
+												"typeName": {
+													"id": 158,
+													"name": "bytes32",
+													"nodeType": "ElementaryTypeName",
+													"src": "7728:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes32",
+														"typeString": "bytes32"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 161,
+												"mutability": "mutable",
+												"name": "data",
+												"nameLocation": "7752:4:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 164,
+												"src": "7739:17:0",
+												"stateVariable": false,
+												"storageLocation": "memory",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes_memory_ptr",
+													"typeString": "bytes"
+												},
+												"typeName": {
+													"id": 160,
+													"name": "bytes",
+													"nodeType": "ElementaryTypeName",
+													"src": "7739:5:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes_storage_ptr",
+														"typeString": "bytes"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "7707:50:0"
+									},
+									"returnParameters": {
+										"id": 163,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "7766:0:0"
+									},
+									"scope": 232,
+									"src": "7693:74:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 165,
+										"nodeType": "StructuredDocumentation",
+										"src": "7773:84:0",
+										"text": "@notice pause SA' mains functionalities. Callable only by Factory on deactivate."
+									},
+									"functionSelector": "8456cb59",
+									"id": 168,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "pause",
+									"nameLocation": "7871:5:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 166,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "7876:2:0"
+									},
+									"returnParameters": {
+										"id": 167,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "7887:0:0"
+									},
+									"scope": 232,
+									"src": "7862:26:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 169,
+										"nodeType": "StructuredDocumentation",
+										"src": "7894:86:0",
+										"text": "@notice unpauses SA's mains functionalities. Callable only by Factory on activate."
+									},
+									"functionSelector": "3f4ba83a",
+									"id": 172,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "unpause",
+									"nameLocation": "7994:7:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 170,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "8001:2:0"
+									},
+									"returnParameters": {
+										"id": 171,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "8012:0:0"
+									},
+									"scope": 232,
+									"src": "7985:28:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 173,
+										"nodeType": "StructuredDocumentation",
+										"src": "8019:623:0",
+										"text": "@notice function callable by company to withdraw any tokens directly transferred to this contract by accident or leftovers from solidity's rounding arithmetic. If token to be withdrawn is the zero address, withdraw ether from contract. This function should be able to retrieve any balance from this smart account in case of a smart account upgrade so that funds can be transferred to the new one. Use safeTransfer function from SafeERC20 inside here to handle different tokens.\n @param token token to be withdrawn.\n @param to to whom it should be given to, possibly being the user who sent it by accident."
+									},
+									"functionSelector": "712b772f",
+									"id": 182,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "skim",
+									"nameLocation": "8656:4:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 178,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 175,
+												"mutability": "mutable",
+												"name": "token",
+												"nameLocation": "8669:5:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 182,
+												"src": "8661:13:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 174,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "8661:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 177,
+												"mutability": "mutable",
+												"name": "to",
+												"nameLocation": "8684:2:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 182,
+												"src": "8676:10:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 176,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "8676:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "8660:27:0"
+									},
+									"returnParameters": {
+										"id": 181,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 180,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 182,
+												"src": "8706:4:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bool",
+													"typeString": "bool"
+												},
+												"typeName": {
+													"id": 179,
+													"name": "bool",
+													"nodeType": "ElementaryTypeName",
+													"src": "8706:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bool",
+														"typeString": "bool"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "8705:6:0"
+									},
+									"scope": 232,
+									"src": "8647:65:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"functionSelector": "b66c484e",
+									"id": 192,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "setPaymentTokens",
+									"nameLocation": "8727:16:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 187,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 184,
+												"mutability": "mutable",
+												"name": "paymentTokens",
+												"nameLocation": "8761:13:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 192,
+												"src": "8753:21:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 183,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "8753:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 186,
+												"mutability": "mutable",
+												"name": "tokenType",
+												"nameLocation": "8789:9:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 192,
+												"src": "8784:14:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 185,
+													"name": "uint",
+													"nodeType": "ElementaryTypeName",
+													"src": "8784:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "8743:61:0"
+									},
+									"returnParameters": {
+										"id": 191,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 190,
+												"mutability": "mutable",
+												"name": "newPaymentTokens",
+												"nameLocation": "8840:16:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 192,
+												"src": "8823:33:0",
+												"stateVariable": false,
+												"storageLocation": "memory",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_address_$dyn_memory_ptr",
+													"typeString": "address[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 188,
+														"name": "address",
+														"nodeType": "ElementaryTypeName",
+														"src": "8823:7:0",
+														"stateMutability": "nonpayable",
+														"typeDescriptions": {
+															"typeIdentifier": "t_address",
+															"typeString": "address"
+														}
+													},
+													"id": 189,
+													"nodeType": "ArrayTypeName",
+													"src": "8823:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_address_$dyn_storage_ptr",
+														"typeString": "address[]"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "8822:35:0"
+									},
+									"scope": 232,
+									"src": "8718:140:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"functionSelector": "de68a001",
+									"id": 200,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "setPermittedERC20Tokens",
+									"nameLocation": "8873:23:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 195,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 194,
+												"mutability": "mutable",
+												"name": "tokenAddress",
+												"nameLocation": "8914:12:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 200,
+												"src": "8906:20:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 193,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "8906:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "8896:36:0"
+									},
+									"returnParameters": {
+										"id": 199,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 198,
+												"mutability": "mutable",
+												"name": "newPermittedERC20Tokens",
+												"nameLocation": "8968:23:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 200,
+												"src": "8951:40:0",
+												"stateVariable": false,
+												"storageLocation": "memory",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_address_$dyn_memory_ptr",
+													"typeString": "address[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 196,
+														"name": "address",
+														"nodeType": "ElementaryTypeName",
+														"src": "8951:7:0",
+														"stateMutability": "nonpayable",
+														"typeDescriptions": {
+															"typeIdentifier": "t_address",
+															"typeString": "address"
+														}
+													},
+													"id": 197,
+													"nodeType": "ArrayTypeName",
+													"src": "8951:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_address_$dyn_storage_ptr",
+														"typeString": "address[]"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "8950:42:0"
+									},
+									"scope": 232,
+									"src": "8864:129:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"functionSelector": "5709d115",
+									"id": 208,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "setPermittedERC721Tokens",
+									"nameLocation": "9008:24:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 203,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 202,
+												"mutability": "mutable",
+												"name": "tokenAddress",
+												"nameLocation": "9050:12:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 208,
+												"src": "9042:20:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 201,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "9042:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "9032:36:0"
+									},
+									"returnParameters": {
+										"id": 207,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 206,
+												"mutability": "mutable",
+												"name": "newPermittedERC721Tokens",
+												"nameLocation": "9104:24:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 208,
+												"src": "9087:41:0",
+												"stateVariable": false,
+												"storageLocation": "memory",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_address_$dyn_memory_ptr",
+													"typeString": "address[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 204,
+														"name": "address",
+														"nodeType": "ElementaryTypeName",
+														"src": "9087:7:0",
+														"stateMutability": "nonpayable",
+														"typeDescriptions": {
+															"typeIdentifier": "t_address",
+															"typeString": "address"
+														}
+													},
+													"id": 205,
+													"nodeType": "ArrayTypeName",
+													"src": "9087:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_address_$dyn_storage_ptr",
+														"typeString": "address[]"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "9086:43:0"
+									},
+									"scope": 232,
+									"src": "8999:131:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"functionSelector": "10c030a3",
+									"id": 216,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "setPermittedERC1155Tokens",
+									"nameLocation": "9145:25:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 211,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 210,
+												"mutability": "mutable",
+												"name": "tokenAddress",
+												"nameLocation": "9188:12:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 216,
+												"src": "9180:20:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 209,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "9180:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "9170:36:0"
+									},
+									"returnParameters": {
+										"id": 215,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 214,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 216,
+												"src": "9225:16:0",
+												"stateVariable": false,
+												"storageLocation": "memory",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_address_$dyn_memory_ptr",
+													"typeString": "address[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 212,
+														"name": "address",
+														"nodeType": "ElementaryTypeName",
+														"src": "9225:7:0",
+														"stateMutability": "nonpayable",
+														"typeDescriptions": {
+															"typeIdentifier": "t_address",
+															"typeString": "address"
+														}
+													},
+													"id": 213,
+													"nodeType": "ArrayTypeName",
+													"src": "9225:9:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_address_$dyn_storage_ptr",
+														"typeString": "address[]"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "9224:18:0"
+									},
+									"scope": 232,
+									"src": "9136:107:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"functionSelector": "0ab9bb62",
+									"id": 223,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "setPercentageFromAllocation",
+									"nameLocation": "9258:27:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 219,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 218,
+												"mutability": "mutable",
+												"name": "percentageFromAllocation",
+												"nameLocation": "9300:24:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 223,
+												"src": "9295:29:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 217,
+													"name": "uint",
+													"nodeType": "ElementaryTypeName",
+													"src": "9295:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "9285:45:0"
+									},
+									"returnParameters": {
+										"id": 222,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 221,
+												"mutability": "mutable",
+												"name": "newPercentageFromAllocation",
+												"nameLocation": "9354:27:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 223,
+												"src": "9349:32:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 220,
+													"name": "uint",
+													"nodeType": "ElementaryTypeName",
+													"src": "9349:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "9348:34:0"
+									},
+									"scope": 232,
+									"src": "9249:134:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 224,
+										"nodeType": "StructuredDocumentation",
+										"src": "9389:168:0",
+										"text": "@notice it should be called within the `constructor` function saying wether it's gonna be true or false. Only callable by admins. Make the factory an admin as well."
+									},
+									"functionSelector": "9d3c1c7b",
+									"id": 231,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "setUseDefault",
+									"nameLocation": "9571:13:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 227,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 226,
+												"mutability": "mutable",
+												"name": "useDefault",
+												"nameLocation": "9590:10:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 231,
+												"src": "9585:15:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bool",
+													"typeString": "bool"
+												},
+												"typeName": {
+													"id": 225,
+													"name": "bool",
+													"nodeType": "ElementaryTypeName",
+													"src": "9585:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bool",
+														"typeString": "bool"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "9584:17:0"
+									},
+									"returnParameters": {
+										"id": 230,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 229,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 231,
+												"src": "9620:4:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bool",
+													"typeString": "bool"
+												},
+												"typeName": {
+													"id": 228,
+													"name": "bool",
+													"nodeType": "ElementaryTypeName",
+													"src": "9620:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bool",
+														"typeString": "bool"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "9619:6:0"
+									},
+									"scope": 232,
+									"src": "9562:64:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								}
+							],
+							"scope": 233,
+							"src": "77:9551:0",
+							"usedErrors": [],
+							"usedEvents": []
+						}
+					],
+					"src": "51:9578:0"
+				},
+				"id": 0
+			}
+		}
+	}
+}

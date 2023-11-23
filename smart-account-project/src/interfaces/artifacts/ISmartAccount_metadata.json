@@ -1,0 +1,664 @@
+{
+	"compiler": {
+		"version": "0.8.20+commit.a1b79de6"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "admin",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "tokenIndex",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
+					}
+				],
+				"name": "allocateDelegate",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "tokenIndex",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "deadline",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "includesNonce",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "nonce",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint8",
+						"name": "v",
+						"type": "uint8"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "r",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "s",
+						"type": "bytes32"
+					}
+				],
+				"name": "allocateWithPermit",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256[]",
+						"name": "tokenIndexes",
+						"type": "uint256[]"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "amounts",
+						"type": "uint256[]"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "deadlines",
+						"type": "uint256[]"
+					},
+					{
+						"internalType": "bool[]",
+						"name": "includesNonce",
+						"type": "bool[]"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "nonces",
+						"type": "uint256[]"
+					},
+					{
+						"internalType": "uint8[]",
+						"name": "v",
+						"type": "uint8[]"
+					},
+					{
+						"internalType": "bytes32[]",
+						"name": "r",
+						"type": "bytes32[]"
+					},
+					{
+						"internalType": "bytes32[]",
+						"name": "s",
+						"type": "bytes32[]"
+					}
+				],
+				"name": "batchAllocateWithPermit",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint8",
+						"name": "v",
+						"type": "uint8"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "r",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "s",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "bytes",
+						"name": "data",
+						"type": "bytes"
+					}
+				],
+				"name": "cease",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "credit",
+				"outputs": [
+					{
+						"internalType": "int256",
+						"name": "",
+						"type": "int256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "userId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "user",
+						"type": "string"
+					},
+					{
+						"internalType": "address[]",
+						"name": "admins",
+						"type": "address[]"
+					},
+					{
+						"internalType": "uint256",
+						"name": "minAllocation",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "acceptsERC20Tokens",
+						"type": "bool"
+					},
+					{
+						"internalType": "address[]",
+						"name": "sortedPermittedERC20Tokens",
+						"type": "address[]"
+					},
+					{
+						"internalType": "bool",
+						"name": "acceptsERC721Tokens",
+						"type": "bool"
+					},
+					{
+						"internalType": "address[]",
+						"name": "sortedPermittedERC721Tokens",
+						"type": "address[]"
+					},
+					{
+						"internalType": "bool",
+						"name": "acceptsERC1155Tokens",
+						"type": "bool"
+					},
+					{
+						"internalType": "address[]",
+						"name": "sortedPermittedERC1155Tokens",
+						"type": "address[]"
+					},
+					{
+						"internalType": "uint256",
+						"name": "percentageFromAllocation",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address[]",
+						"name": "paymentTokens",
+						"type": "address[]"
+					}
+				],
+				"name": "init",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "lastUpdatedTimestamp",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "maxCredit",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "name",
+				"outputs": [
+					{
+						"internalType": "string",
+						"name": "",
+						"type": "string"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "pause",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "score",
+				"outputs": [
+					{
+						"internalType": "int256",
+						"name": "",
+						"type": "int256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "paymentTokens",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "tokenType",
+						"type": "uint256"
+					}
+				],
+				"name": "setPaymentTokens",
+				"outputs": [
+					{
+						"internalType": "address[]",
+						"name": "newPaymentTokens",
+						"type": "address[]"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "percentageFromAllocation",
+						"type": "uint256"
+					}
+				],
+				"name": "setPercentageFromAllocation",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "newPercentageFromAllocation",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "tokenAddress",
+						"type": "address"
+					}
+				],
+				"name": "setPermittedERC1155Tokens",
+				"outputs": [
+					{
+						"internalType": "address[]",
+						"name": "",
+						"type": "address[]"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "tokenAddress",
+						"type": "address"
+					}
+				],
+				"name": "setPermittedERC20Tokens",
+				"outputs": [
+					{
+						"internalType": "address[]",
+						"name": "newPermittedERC20Tokens",
+						"type": "address[]"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "tokenAddress",
+						"type": "address"
+					}
+				],
+				"name": "setPermittedERC721Tokens",
+				"outputs": [
+					{
+						"internalType": "address[]",
+						"name": "newPermittedERC721Tokens",
+						"type": "address[]"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bool",
+						"name": "useDefault",
+						"type": "bool"
+					}
+				],
+				"name": "setUseDefault",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "token",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
+					}
+				],
+				"name": "skim",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_token",
+						"type": "address"
+					}
+				],
+				"name": "tokenToStandard",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "unpause",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "int256",
+						"name": "amount",
+						"type": "int256"
+					}
+				],
+				"name": "update",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "useDefault",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {
+				"admin(address)": {
+					"details": "It should always match the current admins in SAFactory. So, avoid passing in constants, but always make a call to IFactory.admins().",
+					"params": {
+						"account": "to verify"
+					}
+				},
+				"allocateWithPermit(uint256,uint256,uint256,bool,uint256,uint8,bytes32,bytes32)": {
+					"params": {
+						"amount": "amount of token to allocate",
+						"deadline": "deadline for token to be allocated.",
+						"includesNonce": "does the token include a nonce (e.g. DAI) Check whether a nonce can be 0 - since it probably can't, use it as a param to identify that there's no nonce.",
+						"nonce": "tx's nonce for token allocation, if any.",
+						"r": "sig param",
+						"s": "sig param",
+						"tokenIndex": "token to allocate",
+						"v": "sig param"
+					}
+				},
+				"batchAllocateWithPermit(uint256[],uint256[],uint256[],bool[],uint256[],uint8[],bytes32[],bytes32[])": {
+					"params": {
+						"amounts": "amounts of each token to be deposited.",
+						"deadlines": "deadlines for the transfers to happen.",
+						"includesNonce": "whether tokens use includes nonces",
+						"nonces": "nonces for tokens. Choose an arbitrary number those who haven't nonces",
+						"r": "sig param",
+						"s": "sig param",
+						"tokenIndexes": "tokens the user want to allocate to receive credit. Must be in inside the permitted tokens addresses chosen by the company.",
+						"v": "sig param"
+					}
+				},
+				"init(uint256,string,address[],uint256,bool,address[],bool,address[],bool,address[],uint256,address[])": {
+					"details": "since the SA itself will pull the tokens from the user, user's approval of tokens to this contract should be handled inside the allocateWithPermit function."
+				},
+				"lastUpdatedTimestamp()": {
+					"details": "important for accountability to check whether all SAs in factory have all be updated around the same time."
+				},
+				"skim(address,address)": {
+					"params": {
+						"to": "to whom it should be given to, possibly being the user who sent it by accident.",
+						"token": "token to be withdrawn."
+					}
+				},
+				"tokenToStandard(address)": {
+					"params": {
+						"_token": "address of token."
+					}
+				},
+				"update(int256)": {
+					"params": {
+						"amount": "debt or credit of user in a given time. It is used to update the `credit` mapping."
+					}
+				},
+				"useDefault()": {
+					"details": "I thought of having all users use the same value, but as it is done in the TradFi industry, users are categorized into certain thresholds - there's the Itau, but there's also the Itau Personalité, for example. So, a customization should be made possible. So, functions sould be also be accessible to be modified by admins in SA."
+				}
+			},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {
+				"admin(address)": {
+					"notice": "checks whether `account` is authorized to modify user's smart account."
+				},
+				"allocateDelegate(uint256,uint256,address)": {
+					"notice": "it permits a user to give his credits to another user, but the debt will be calculated against this SA, not the SA of the `to`."
+				},
+				"allocateWithPermit(uint256,uint256,uint256,bool,uint256,uint8,bytes32,bytes32)": {
+					"notice": "Main function called by the company (or goblockchain?) to pull user funds to this contract and give him credit. `nonReentrant` function, but allowed to be called in different times for the same user to give him compound credit. Function uses the safeTransferFrom with permit functionality to pull tokens. This function can only be callable by the company. Why? Because precification needs to bae handled off-chain. If user calls this function directly, he can send any amount of a depretiated token and his credit can be updated, making it so that he'll have paid less than his bills. So, front-end determines precification, and the user can deposit it. Yes, he can deposit at anytime, however, he can't call it directly. To support  payments before the due data, anytime the user allocates, his credit is updated. To support direct payments, make an `if` statement that if it's not the company the `sender`, user will pay in a stablecoin - probably tether which is centralized and seems to maintain price at $1 always. Then do the math to convert to real - check whether there's a REAL-like stable coin on chain - and then do the math to roundup user payment onchain. Check whether the function implementation is protected against the company making the factory a user as well."
+				},
+				"batchAllocateWithPermit(uint256[],uint256[],uint256[],bool[],uint256[],uint8[],bytes32[],bytes32[])": {
+					"notice": "Main function called by the company (or goblockchain?) to pull user funds to this contract and give him credit. `nonReentrant` function, but allowed to be called in different times for the same user to give him compound credit."
+				},
+				"cease(uint8,bytes32,bytes32,bytes)": {
+					"notice": "used by company to cease a user's participation in the protocol."
+				},
+				"credit()": {
+					"notice": "user's current credit (>0) or debt (<0) at any given time."
+				},
+				"init(uint256,string,address[],uint256,bool,address[],bool,address[],bool,address[],uint256,address[])": {
+					"notice": "callable by SAFactory. It sets the config options for the Smart Account and registers tokens in tokens addresses."
+				},
+				"lastUpdatedTimestamp()": {
+					"notice": "it returns the last timestamp the SA was updated."
+				},
+				"maxCredit()": {
+					"notice": "user's max credit calculated from user's allocation. Consequentially, it is also the maxDebt for a user."
+				},
+				"name()": {
+					"notice": "user's name."
+				},
+				"pause()": {
+					"notice": "pause SA' mains functionalities. Callable only by Factory on deactivate."
+				},
+				"score()": {
+					"notice": "it increases each time the user `payback()`. It diminishes when user doesn't inccurs debt multiple times. It can be used futurely for giving a usr specific rewards according to his/her score."
+				},
+				"setUseDefault(bool)": {
+					"notice": "it should be called within the `constructor` function saying wether it's gonna be true or false. Only callable by admins. Make the factory an admin as well."
+				},
+				"skim(address,address)": {
+					"notice": "function callable by company to withdraw any tokens directly transferred to this contract by accident or leftovers from solidity's rounding arithmetic. If token to be withdrawn is the zero address, withdraw ether from contract. This function should be able to retrieve any balance from this smart account in case of a smart account upgrade so that funds can be transferred to the new one. Use safeTransfer function from SafeERC20 inside here to handle different tokens."
+				},
+				"tokenToStandard(address)": {
+					"notice": "gets a token from its address and check whether it's a erc20 (0), erc721(1) or erc1155(2)."
+				},
+				"unpause()": {
+					"notice": "unpauses SA's mains functionalities. Callable only by Factory on activate."
+				},
+				"update(int256)": {
+					"notice": "only to be called by company's wallets addresses. It's called when company updates the states of the user according to their usage of the credit card off-chain. It can be called in batches to avoid block-max-gas-limit revert error in the chain being used."
+				},
+				"useDefault()": {
+					"notice": "storage variable that is either true or false. Use default values already registered in this Factory contract for the `create` function. If false, params should be given. If true, params can be of any value and they will be discarded."
+				}
+			},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"src/interfaces/ISmartAccount.sol": "ISmartAccount"
+		},
+		"evmVersion": "shanghai",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"src/interfaces/ISmartAccount.sol": {
+			"keccak256": "0xc87b4ede6373d2c98b7afe83d86379c9c62a316ca3772751cce4a5c86d31ced7",
+			"license": "SEE LICENSE IN LICENSE",
+			"urls": [
+				"bzz-raw://c75ff8fd19e07915b71bf450fe631f6b1259786133e48515431d31c8af16598f",
+				"dweb:/ipfs/QmYjdwwWCBGfarnVusdLFXH15epwPQa5dsP6bQL7gj4AcU"
+			]
+		}
+	},
+	"version": 1
+}

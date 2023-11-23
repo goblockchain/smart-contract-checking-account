@@ -86,7 +86,7 @@ interface ISAFactory {
     /// @param _users id of user
     /// @param _newSmartAccounts new address of the contract with the new feature.
     function batchSetSmartAccounts(
-        uint[] calldata _users,
+        address[] calldata _users,
         address[] calldata _newSmartAccounts
     ) external returns (bool);
 
@@ -132,7 +132,7 @@ interface ISAFactory {
         bytes32 r,
         bytes32 s,
         bool useDefault
-    ) external returns (address user, address smartAccount);
+    ) external returns (address _user, address smartAccount);
 
     /// @notice Called to update users's SA liabilities. This function will probably be called once a month to update user's states. This function can be used or a direct call to an user's SA can be made through its `update` function, at any given time. 1) The user will have his credit updated only when he allocates - which will be available only through the front-end. If a user does not deposit anything more than his initial deposit, only the company will be able to update his credit based on his off-chain card usage & repayment.
     /// @dev Those who have debt will be the ones that have not paid their bills. They should be punish()ed according to the decided punition.
@@ -155,25 +155,19 @@ interface ISAFactory {
       ╚═════════════════════════════╝*/
 
     /// @notice checks whether `account` is authorized to modify user's smart account.
-    /// @param account to verify
-    function admin(address account) external view returns (bool);
+    function admin(address) external view returns (bool);
 
-    /// @notice finds who's an admin for a given factory.
-    function admins() external view returns (address[] memory admins);
+    /// @notice helper mapping to retrieve a SA associated to an user.
+    function smartAccount(address) external view returns (address);
 
-    /// helper mapping to retrieve a SA associated to an user.
-    /// @param userId the userId connected to their SmartAccount.
-    function smartAccount(uint userId) external view returns (address);
-
-    /// @notice helper mapping to make sure user is part of the protocol.
-    /// @param _user address of smartAccount from user.
-    function users(address _user) external view returns (bool);
+    /// @notice helper mapping to make sure user is part of the protocol. Define if this will either mean user has deposited already or user has received their credit card.
+    function users(address) external view returns (bool);
 
     /// @notice it retrieves users' scores for accountability.
     /// @param users user for which score will be checked.
     /// @return scores users scores to be retrieved.
     function scores(
-        uint[] calldata users
+        address[] calldata users
     ) external view returns (int[] memory scores);
 
     /// @notice gets a token from its address and check whether it's a erc20 (0), erc721(1) or erc1155(2).

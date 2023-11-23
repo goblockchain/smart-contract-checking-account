@@ -5,6 +5,8 @@ import "./interfaces/IFactory.sol";
 import "./interfaces/ISmartAccount.sol";
 import "./helpers/Errors.sol";
 import "./SmartAccount.sol";
+import "../lib/openzeppelin-contracts/contracts/metatx/ERC2771Forwarder.sol";
+import "../lib/openzeppelin-contracts/contracts/metatx/ERC2771Context.sol";
 
 /**
  * @title Factory
@@ -12,33 +14,24 @@ import "./SmartAccount.sol";
  * @notice This is the contract responsible for managing and creating the SmartAccount contracts.
  */
 
-contract Factory is ISAFactory {
+contract Factory is ISAFactory, ERC2771Forwarder, ERC2771Context {
     uint256 public number;
 
     /*╔═════════════════════════════╗
       ║       STATE VARIABLES       ║
       ╚═════════════════════════════╝*/
-    /// @inheritdoc ISAFactory
-    address[] admins;
+    address[] public admins;
 
     /// @inheritdoc ISAFactory
-    mapping(address => bool) admin;
+    mapping(address => bool) public admin;
     /// @inheritdoc ISAFactory
-    mapping(address => bool) users;
+    mapping(address => bool) public users;
 
     /// @inheritdoc ISAFactory
-    mapping(address => address) smartAccount;
-    /// @inheritdoc ISAFactory
-    mapping(uint => bool) active;
-
-    enum TokenStandard {
-        isERC20, // 0
-        isERC721, // 1
-        isERC1155 // 2
-    }
+    mapping(address => address) public smartAccount;
 
     // maps a tokenIndex to a tokenStandard
-    mapping(address => uint) tokenToStandard;
+    mapping(address => uint) public tokenToStandard;
 
     uint private unlocked = 1;
 
@@ -49,7 +42,7 @@ contract Factory is ISAFactory {
         unlocked = 1;
     }
 
-    constructor() {
+    constructor() ERC2771Forwarder("Factory") ERC2771Context(address(this)) {
         // make the factory itself an `admin`
         admins.push(address(this));
         admin[address(this)] = true;
@@ -177,6 +170,41 @@ contract Factory is ISAFactory {
     }
 
     /*╔═════════════════════════════╗
+      ║        SET FUNCTIONS        ║
+      ╚═════════════════════════════╝*/
+
+    function setMinAllocation(
+        uint userId,
+        uint minAllocation
+    ) external returns (uint newMinAllocation) {}
+
+    function setPermittedERC20Tokens(
+        address tokenAddress
+    ) external returns (address[] memory newPermittedERC20Tokens) {}
+
+    function setPermittedERC721Tokens(
+        address tokenAddress
+    ) external returns (address[] memory newPermittedERC721Tokens) {}
+
+    function setPermittedERC1155Tokens(
+        address tokenAddress
+    ) external returns (address[] memory) {}
+
+    function setPercentageFromAllocation(
+        uint percentageFromAllocation
+    ) external returns (uint newPercentageFromAllocation) {}
+
+    function setPaymentTokens(
+        address paymentTokens,
+        uint tokenType
+    ) external returns (address[] memory newPaymentTokens) {}
+
+    function setSmartAccount(
+        uint userId,
+        address newSmartAccount
+    ) external returns (bool) {}
+
+    /*╔═════════════════════════════╗
       ║       ADMIN FUNCTIONS       ║
       ╚═════════════════════════════╝*/
 
@@ -225,6 +253,8 @@ contract Factory is ISAFactory {
             }
         }
     }
+
+    function punish(uint[] calldata usersIds, int amounts) external {}
 
     /*╔═════════════════════════════╗
       ║   ACCESS CONTROL FUNCTIONS  ║
@@ -277,4 +307,39 @@ contract Factory is ISAFactory {
         // use default values
         // deploy SmartAccount from here.
     }
+
+    function skim(
+        address _token,
+        address _to,
+        uint _id
+    ) external override returns (bool) {}
+
+    function deactivate(
+        uint userId,
+        bool refund
+    ) external override returns (bool) {}
+
+    function batchSetSmartAccounts(
+        uint[] calldata _users,
+        address[] calldata _newSmartAccounts
+    ) external returns (bool) {}
+
+    function create(
+        string calldata user,
+        uint minAllocation,
+        bool acceptERC20Tokens,
+        address[] calldata permittedERC20Tokens,
+        bool acceptERC721Tokens,
+        address[] calldata permittedERC721Tokens,
+        bool acceptERC1155Tokens,
+        address[] calldata permittedERC1155Tokens,
+        uint percentageFromAllocation,
+        address[] calldata paymentTokens,
+        bool includesNonce,
+        uint256 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s,
+        bool useDefault
+    ) external override returns (address _user, address smartAccount) {}
 }
