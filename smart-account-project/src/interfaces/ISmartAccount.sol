@@ -25,7 +25,7 @@ interface ISmartAccount {
 
     /// @notice it returns the last timestamp the SA was updated.
     /// @dev important for accountability to check whether all SAs in factory have all be updated around the same time.
-    function lastUpdatedTimestamp() external view returns (uint);
+    // function lastUpdatedTimestamp() external view returns (uint);
 
     /// @notice gets a token from its address and check whether it's a erc20 (0), erc721(1) or erc1155(2).
     /// @param _token address of token.

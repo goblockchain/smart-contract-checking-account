@@ -90,6 +90,8 @@ interface ISAFactory {
         address[] calldata _newSmartAccounts
     ) external returns (bool);
 
+    function registerSelf(string calldata userName) external returns (address);
+
     /* VISA-off
     function batchPause(address[] calldata _users) external;
 
@@ -102,27 +104,12 @@ interface ISAFactory {
 
     /// @notice callable only by goBlockchain. Have an id for each user. Sort permitted tokens to place them correctly in a tokenIndex mapping. address(0) must be the token of ID 0, so that we can avoid users passing in address(0) tokens. Like Uniswap, have a salt determined by specific user's address that can't be predicted, for example, using the custom name. Back/front-end needs to check whether there's a smart account for a user already. If not, make the user deposit the tokens in the factory, then user's funds are transferred to his smart account - to avoid company wasting gas if user requests a new factory to be created and (s)he doesn't deposit any tokens in the SA. Also, this is more efficient for the company because they don't have to pay two different txs. In its creation - or make another function specifically for this, the smartAccount needs to approve the the factory for a token to get its funds at anytime.
     /// @param user user's name that is on his card. If it's allowed in Brazil to have any nickname on a credit card, possibly make it be user's nickname.
-    /// @param minAllocation min allowed allocation by user
-    /// @param acceptERC20Tokens flag to allow/disallow erc20s allocations
-    /// @param permittedERC20Tokens permitted erc20 tokens
-    /// @param acceptERC721Tokens flag to allow/disallow erc721s allocations
-    /// @param permittedERC721Tokens permitted erc721 tokens
-    /// @param acceptERC1155Tokens flag to allow/disallow erc1155s allocations
-    /// @param permittedERC1155Tokens permitted erc1155 tokens
-    /// @param percentageFromAllocation percentage of allowcation given to user as credit.
-    /// @param paymentTokens tokens allowed to be received as a payment for debt.
+    /// @param _username username to represent him in the contract.
+    /// @return user address of user.
+    /// @return smartAccount smartAccount created for user.
     function create(
         address _user,
-        string calldata _username,
-        uint minAllocation,
-        bool acceptERC20Tokens,
-        address[] calldata permittedERC20Tokens,
-        bool acceptERC721Tokens,
-        address[] calldata permittedERC721Tokens,
-        bool acceptERC1155Tokens,
-        address[] calldata permittedERC1155Tokens,
-        uint percentageFromAllocation,
-        address[] calldata paymentTokens
+        string calldata _username
     ) external returns (address user, address smartAccount);
 
     /// @notice Called to update users's SA liabilities. This function will probably be called once a month to update user's states. This function can be used or a direct call to an user's SA can be made through its `update` function, at any given time. 1) The user will have his credit updated only when he allocates - which will be available only through the front-end. If a user does not deposit anything more than his initial deposit, only the company will be able to update his credit based on his off-chain card usage & repayment.

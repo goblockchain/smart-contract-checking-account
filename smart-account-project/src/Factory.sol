@@ -23,18 +23,27 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
       ╚═════════════════════════════╝*/
     address[] public admins;
 
-    /// @inheritdoc ISAFactory
     mapping(address => bool) private _admins;
-    /// @inheritdoc ISAFactory
+
     mapping(address => bool) private _users;
 
-    /// @inheritdoc ISAFactory
     mapping(address => address) private _smartAccount;
 
     // maps a tokenIndex to a tokenStandard
     mapping(address => uint) private _tokensType;
 
     uint private unlocked = 1;
+
+    /*╔═════════════════════════════╗
+      ║           EVENTS            ║
+      ╚═════════════════════════════╝*/
+
+    event CreditUpdated(
+        address user,
+        address smartAccount,
+        int change,
+        int credit
+    );
 
     enum TokenStandard {
         isNothing,
@@ -54,8 +63,17 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
       ║      CALLBACK FUNCTIONS     ║
       ╚═════════════════════════════╝*/
     receive() external payable {
+        if (_smartAccount[msg.sender] == address(0))
+            revert Errors.NotAUser(msg.sender);
         ISmartAccount(_smartAccount[msg.sender]).update(
             (int256(msg.value / 1 ether) * 1000)
+        );
+
+        emit CreditUpdated(
+            msg.sender,
+            _smartAccount[msg.sender],
+            int256(msg.value / 1 ether) * 1000,
+            ISmartAccount(_smartAccount[msg.sender]).credit()
         );
     }
 
@@ -67,6 +85,7 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         uint256 value,
         bytes calldata data
     ) external lock returns (bytes4) {
+        if (_smartAccount[from] == address(0)) revert Errors.NotAUser(from);
         ISmartAccount(_smartAccount[from]).update(1000);
         require(uint(TokenStandard.isERC1155) == 3, "!3");
         _tokensType[msg.sender] = uint(TokenStandard.isERC1155);
@@ -85,6 +104,7 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         uint256[] calldata values,
         bytes calldata data
     ) external lock returns (bytes4) {
+        if (_smartAccount[from] == address(0)) revert Errors.NotAUser(from);
         ISmartAccount(_smartAccount[from]).update(1000);
         _tokensType[msg.sender] = uint(TokenStandard.isERC1155);
         return
@@ -325,18 +345,19 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
     /// @dev derive user's address from user's signature (v,r,s).
     function create(
         address _user,
-        string calldata _username,
-        uint minAllocation,
-        bool acceptERC20Tokens,
-        address[] calldata permittedERC20Tokens,
-        bool acceptERC721Tokens,
-        address[] calldata permittedERC721Tokens,
-        bool acceptERC1155Tokens,
-        address[] calldata permittedERC1155Tokens,
-        uint percentageFromAllocation,
-        address[] calldata paymentTokens
+        string calldata _username
     ) external lock returns (address user, address smartAccount) {
+        _isAdmin(msg.sender);
         return (_user, _create(_user, _username));
+    }
+
+    function registerSelf(
+        string calldata userName
+    ) external returns (address smartUserAccount) {
+        if (_users[msg.sender]) revert Errors.InvalidUser(msg.sender);
+        smartUserAccount = _create(msg.sender, userName);
+        _users[msg.sender] = true;
+        _smartAccount[msg.sender] = smartUserAccount;
     }
 
     function _create(
@@ -357,11 +378,19 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         uint _id
     ) external override returns (bool) {
         _isAdmin(msg.sender);
-        if (_token == address(0)) _to.call{value: address(this).balance}("");
+        if (_token == address(0)) {
+            (bool done, ) = _to.call{value: address(this).balance}("");
+            if (!done) revert Errors.UnableToMove();
+            return true;
+        }
     }
 
     function deactivate(
         uint userId,
         bool refund
     ) external override returns (bool) {}
+
+    function supportsInterface(bytes4 interfaceId) public view returns (bool) {
+        return interfaceId == type(IERC165).interfaceId;
+    }
 }

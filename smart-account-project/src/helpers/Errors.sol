@@ -10,4 +10,6 @@ library Errors {
     error Locked();
     error Paused();
     error InvalidToken(address token);
+    error UnableToMove();
+    error NotAUser(address nonUser);
 }

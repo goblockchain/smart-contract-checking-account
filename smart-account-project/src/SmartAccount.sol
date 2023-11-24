@@ -26,7 +26,7 @@ contract SmartAccount is ISmartAccount {
     int public credit;
     int public score;
     uint public maxCredit;
-    uint public lastUpdatedTimestamp;
+    uint public lastUpdatedAt;
     bool public useDefault;
 
     uint private unlocked = 1;
@@ -138,6 +138,7 @@ contract SmartAccount is ISmartAccount {
     function update(int amount) external returns (int) {
         if (amount > 0) credit += amount;
         if (amount < 0) credit -= amount; //int does not underflow
+        lastUpdatedAt = block.timestamp;
         return credit;
     }
 
