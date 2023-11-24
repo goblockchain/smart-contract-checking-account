@@ -1,0 +1,21 @@
+/**
+ * Failed to minify the file using UglifyJS v3.3.22. Serving the original version.
+ * Do NOT use SRI with dynamically generated files! More information: https://www.jsdelivr.com/using-sri-with-dynamic-files
+ */
+'use strict'
+const Line = require('./src/Line')
+
+function wrapper (segments) {
+  if (arguments.length > 1) {
+    segments = Array.from(arguments)
+  } else if (!Array.isArray(segments)) {
+    segments = [segments]
+  }
+  var line = new Line(segments)
+  return function () {
+    return line.execute.apply(line, arguments)
+  }
+}
+
+module.exports = wrapper
+module.exports.Line = Line

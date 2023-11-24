@@ -1,0 +1,8 @@
+/**
+ * Minified by jsDelivr using Terser v3.14.1.
+ * Original file: /npm/li@1.3.0/lib/index.js
+ *
+ * Do NOT use SRI with dynamically generated files! More information: https://www.jsdelivr.com/using-sri-with-dynamic-files
+ */
+!function(e,n,r){"undefined"!=typeof module&&module.exports?module.exports=n():"function"==typeof r.define&&r.define.amd?define(n):r.li=n()}(0,function(){var e=/^;\s*([^"=]+)=(?:"([^"]+)"|([^";,]+)(?:[;,]|$))/,n=/^<([^>]*)>/,r=/^\s*,\s*/;return{parse:function(t,i){for(var c,u,o,f=i&&i.extended||!1,l=[];t&&(t=t.trim(),u=n.exec(t));){for(var s={link:u[1]},d=(t=t.slice(u[0].length)).match(r);t&&(!d||d.index>0)&&(c=e.exec(t));)d=(t=t.slice(c[0].length)).match(r),"rel"===c[1]||"rev"===c[1]?(o=(c[2]||c[3]).split(/\s+/),s[c[1]]=o):s[c[1]]=c[2]||c[3];l.push(s),t=t.replace(r,"")}return f?l:l.reduce(function(e,n){return n.rel&&n.rel.forEach(function(r){e[r]=n.link}),e},{})},stringify:function(e){var n=Object.keys(e).reduce(function(n,r){return n[e[r]]=n[e[r]]||[],n[e[r]].push(r),n},{});return Object.keys(n).reduce(function(e,r){return e.concat("<"+r+'>; rel="'+n[r].join(" ")+'"')},[]).join(", ")}}},this);
+//# sourceMappingURL=/sm/b27a3c178048a1f8e510e0592a44211879685c25d044d751339a501a4f45a79c.map
