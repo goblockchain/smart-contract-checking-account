@@ -7,6 +7,8 @@ import "./helpers/Errors.sol";
 import "./SmartAccount.sol";
 import "../lib/openzeppelin-contracts/contracts/metatx/ERC2771Forwarder.sol";
 import "../lib/openzeppelin-contracts/contracts/metatx/ERC2771Context.sol";
+import "../lib/openzeppelin-contracts/contracts/token/ERC1155/IERC1155Receiver.sol";
+import "../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 
 /**
  * @title Factory
@@ -14,7 +16,8 @@ import "../lib/openzeppelin-contracts/contracts/metatx/ERC2771Context.sol";
  * @notice This is the contract responsible for managing and creating the SmartAccount contracts.
  */
 
-contract Factory is ISAFactory, ERC2771Forwarder, ERC2771Context {
+// contract Factory is ISAFactory, ERC2771Forwarder, ERC2771Context {
+contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
     /*╔═════════════════════════════╗
       ║       STATE VARIABLES       ║
       ╚═════════════════════════════╝*/
@@ -40,7 +43,65 @@ contract Factory is ISAFactory, ERC2771Forwarder, ERC2771Context {
         unlocked = 1;
     }
 
-    constructor() ERC2771Forwarder("Factory") ERC2771Context(address(this)) {
+    /*╔═════════════════════════════╗
+      ║      CALLBACK FUNCTIONS     ║
+      ╚═════════════════════════════╝*/
+    receive() external payable {
+        ISmartAccount(smartAccount[msg.sender]).update(
+            (int256(msg.value / 1 ether) * 1000)
+        );
+    }
+
+    /// @notice the function below as is MUST NOT be used in production. This is only a demo for a presentation
+    function onERC1155Received(
+        address operator,
+        address from,
+        uint256 id,
+        uint256 value,
+        bytes calldata data
+    ) external returns (bytes4) {
+        ISmartAccount(smartAccount[from]).update(1000);
+        return
+            bytes4(
+                keccak256(
+                    "onERC1155Received(address,address,uint256,uint256,bytes)"
+                )
+            );
+    }
+
+    function onERC1155BatchReceived(
+        address operator,
+        address from,
+        uint256[] calldata ids,
+        uint256[] calldata values,
+        bytes calldata data
+    ) external returns (bytes4) {
+        ISmartAccount(smartAccount[from]).update(1000);
+        return
+            bytes4(
+                keccak256(
+                    "onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"
+                )
+            );
+    }
+
+    /// @notice the function below as is MUST NOT be used in production. This is only a demo for a presentation
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external returns (bytes4) {
+        ISmartAccount(smartAccount[from]).update(1000);
+        return IERC721Receiver.onERC721Received.selector;
+    }
+
+    // constructor() ERC2771Forwarder("Factory") ERC2771Context(address(this)) {
+    constructor() {
+        //   deployer is `admin`
+        admins.push(msg.sender);
+        admin[msg.sender] = true;
+
         // make the factory itself an `admin`
         admins.push(address(this));
         admin[address(this)] = true;
@@ -310,7 +371,12 @@ contract Factory is ISAFactory, ERC2771Forwarder, ERC2771Context {
         address _token,
         address _to,
         uint _id
-    ) external override returns (bool) {}
+    ) external override returns (bool) {
+        _isAdmin(msg.sender);
+        if (_token == address(0)) {
+            _to.call{value: address(this).balance}("");
+        }
+    }
 
     function deactivate(
         uint userId,

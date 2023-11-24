@@ -6,6 +6,16 @@ import {ERC2771Forwarder} from "../lib/openzeppelin-contracts/contracts/metatx/E
 import "../lib/forge-std/src/console.sol";
 import "../lib/openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
 
+struct ForwardRequest {
+    address from;
+    address to;
+    uint256 value;
+    uint256 gas;
+    uint256 nonce;
+    uint48 deadline;
+    bytes data;
+}
+
 contract Counter is ERC2771Forwarder, ERC2771Context {
     using ECDSA for bytes32;
     uint256 public number;
@@ -77,5 +87,25 @@ contract Counter is ERC2771Forwarder, ERC2771Context {
             deadline,
             nonces(_from)
         );
+    }
+
+    function structHash(
+        ForwardRequest calldata request
+    ) external view returns (bytes32) {
+        return
+            _hashTypedDataV4(
+                keccak256(
+                    abi.encode(
+                        _FORWARD_REQUEST_TYPEHASH,
+                        request.from,
+                        request.to,
+                        request.value,
+                        request.gas,
+                        request.nonce,
+                        request.deadline,
+                        keccak256(request.data)
+                    )
+                )
+            );
     }
 }
