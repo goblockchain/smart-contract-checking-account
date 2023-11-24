@@ -135,7 +135,11 @@ contract SmartAccount is ISmartAccount {
         bytes32[] calldata s
     ) external override {}
 
-    function update(int amount) external override {}
+    function update(int amount) external returns (int) {
+        if (amount > 0) credit += amount;
+        if (amount < 0) credit -= amount; //int does not underflow
+        return credit;
+    }
 
     function cease(
         uint8 v,

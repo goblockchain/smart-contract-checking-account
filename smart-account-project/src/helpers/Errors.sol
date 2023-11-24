@@ -9,4 +9,5 @@ library Errors {
     error ArrayLengthMismatch();
     error Locked();
     error Paused();
+    error InvalidToken(address token);
 }

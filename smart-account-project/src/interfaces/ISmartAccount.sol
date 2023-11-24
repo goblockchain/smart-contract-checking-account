@@ -110,7 +110,7 @@ interface ISmartAccount {
 
     /// @notice only to be called by company's wallets addresses. It's called when company updates the states of the user according to their usage of the credit card off-chain. It can be called in batches to avoid block-max-gas-limit revert error in the chain being used.
     /// @param amount debt or credit of user in a given time. It is used to update the `credit` mapping.
-    function update(int amount) external;
+    function update(int amount) external returns (int);
 
     /// @notice used by company to cease a user's participation in the protocol.
     function cease(uint8 v, bytes32 r, bytes32 s, bytes memory data) external;

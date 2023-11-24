@@ -83,10 +83,10 @@ interface ISAFactory {
       ╚═════════════════════════════╝*/
 
     /// @notice to be used when new feature has come to the protocol. Funds need to be retrieved from old smart accounts to new ones through the skim() function inside this function.
-    /// @param _users id of user
+    /// @param users id of user
     /// @param _newSmartAccounts new address of the contract with the new feature.
     function batchSetSmartAccounts(
-        address[] calldata _users,
+        address[] calldata users,
         address[] calldata _newSmartAccounts
     ) external returns (bool);
 
@@ -111,14 +111,9 @@ interface ISAFactory {
     /// @param permittedERC1155Tokens permitted erc1155 tokens
     /// @param percentageFromAllocation percentage of allowcation given to user as credit.
     /// @param paymentTokens tokens allowed to be received as a payment for debt.
-    /// @param includesNonce wether token includes nonce.
-    /// @param nonce nonce if includesNonce is true.
-    /// @param v sig param.
-    /// @param r sig param.
-    /// @param s sig param.
-    /// @param useDefault the smartAccount should be customized or it should use the default values registered in the Factory. Set to true by default in back-end.
     function create(
-        string calldata user,
+        address _user,
+        string calldata _username,
         uint minAllocation,
         bool acceptERC20Tokens,
         address[] calldata permittedERC20Tokens,
@@ -127,14 +122,8 @@ interface ISAFactory {
         bool acceptERC1155Tokens,
         address[] calldata permittedERC1155Tokens,
         uint percentageFromAllocation,
-        address[] calldata paymentTokens,
-        bool includesNonce, // some tokens, like DAI seem to have a nonce in their permit functions.
-        uint256 nonce,
-        uint8 v,
-        bytes32 r,
-        bytes32 s,
-        bool useDefault
-    ) external returns (address _user, address smartAccount);
+        address[] calldata paymentTokens
+    ) external returns (address user, address smartAccount);
 
     /// @notice Called to update users's SA liabilities. This function will probably be called once a month to update user's states. This function can be used or a direct call to an user's SA can be made through its `update` function, at any given time. 1) The user will have his credit updated only when he allocates - which will be available only through the front-end. If a user does not deposit anything more than his initial deposit, only the company will be able to update his credit based on his off-chain card usage & repayment.
     /// @dev Those who have debt will be the ones that have not paid their bills. They should be punish()ed according to the decided punition.
@@ -163,7 +152,7 @@ interface ISAFactory {
     function smartAccount(address) external view returns (address);
 
     /// @notice helper mapping to make sure user is part of the protocol. Define if this will either mean user has deposited already or user has received their credit card.
-    function users(address) external view returns (bool);
+    function user(address) external view returns (bool);
 
     /// @notice it retrieves users' scores for accountability.
     /// @param users user for which score will be checked.
