@@ -24,7 +24,7 @@ interface ISAFactory {
     /// @param _token token to be withdrawn.
     /// @param _to to whom it should be given to, possibly being the user who sent it by accident.
     /// @param _id id of token if it's an NFT.
-    function skim(
+    function move(
         address _token,
         address _to,
         uint _id
@@ -90,9 +90,11 @@ interface ISAFactory {
         address[] calldata _newSmartAccounts
     ) external returns (bool);
 
+    /* VISA-off
     function batchPause(address[] calldata _users) external;
 
     function batchUnpause(address[] calldata _users) external;
+    */
 
     /*╔═════════════════════════════╗
       ║     TO CALL SA FUNCTIONS    ║
@@ -173,10 +175,4 @@ interface ISAFactory {
     /// @notice gets a token from its address and check whether it's a erc20 (0), erc721(1) or erc1155(2).
     /// @param _token address of token.
     function tokenToStandard(address _token) external view returns (uint);
-
-    enum TokenStandard {
-        isERC20, // 0
-        isERC721, // 1
-        isERC1155 // 2
-    }
 }

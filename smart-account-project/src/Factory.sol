@@ -36,6 +36,12 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
 
     uint private unlocked = 1;
 
+    enum TokenStandard {
+        isERC20, // 0
+        isERC721, // 1
+        isERC1155 // 2
+    }
+
     modifier lock() {
         if (unlocked != 1) revert Errors.Locked();
         unlocked = 0;
@@ -61,6 +67,8 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         bytes calldata data
     ) external returns (bytes4) {
         ISmartAccount(smartAccount[from]).update(1000);
+        require(uint(TokenStandard.isERC1155) == 2, "!2");
+        tokenToStandard[msg.sender] = uint(TokenStandard.isERC1155);
         return
             bytes4(
                 keccak256(
@@ -77,6 +85,7 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         bytes calldata data
     ) external returns (bytes4) {
         ISmartAccount(smartAccount[from]).update(1000);
+        tokenToStandard[msg.sender] = uint(TokenStandard.isERC1155);
         return
             bytes4(
                 keccak256(
@@ -92,12 +101,14 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         uint256 tokenId,
         bytes calldata data
     ) external returns (bytes4) {
+        tokenToStandard[msg.sender] = uint(TokenStandard.isERC721);
+        require(uint(TokenStandard.isERC721) == 1, "!1");
         ISmartAccount(smartAccount[from]).update(1000);
         return IERC721Receiver.onERC721Received.selector;
     }
 
     // constructor() ERC2771Forwarder("Factory") ERC2771Context(address(this)) {
-    constructor() {
+    constructor(address _firstUser, string memory _firstUserName) {
         //   deployer is `admin`
         admins.push(msg.sender);
         admin[msg.sender] = true;
@@ -105,6 +116,8 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         // make the factory itself an `admin`
         admins.push(address(this));
         admin[address(this)] = true;
+
+        _create(_firstUser, _firstUserName);
     }
 
     /*╔═════════════════════════════╗
@@ -145,42 +158,6 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
     /*╔═════════════════════════════╗
       ║      BATCH FUNCTIONS        ║
       ╚═════════════════════════════╝*/
-
-    /// @inheritdoc ISAFactory
-    function batchPause(address[] calldata _users) external lock {
-        _isAdmin(msg.sender);
-        uint length = _users.length;
-        for (uint i; i < length; ) {
-            // if not a user, revert.
-            if (!users[_users[i]]) revert Errors.InvalidUser((_users[i]));
-            // if a user, but no smartAccount, revert.
-            if (smartAccount[_users[i]] == address(0))
-                revert Errors.InvalidUser((_users[i]));
-            // if user && smartAccount, pause.
-            ISmartAccount(smartAccount[_users[i]]).pause();
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
-    /// @inheritdoc ISAFactory
-    function batchUnpause(address[] calldata _users) external lock {
-        _isAdmin(msg.sender);
-        uint length = _users.length;
-        for (uint i; i < length; ) {
-            // if not a user, revert.
-            if (!users[_users[i]]) revert Errors.InvalidUser((_users[i]));
-            // if a user, but no smartAccount, revert.
-            if (smartAccount[_users[i]] == address(0))
-                revert Errors.InvalidUser((_users[i]));
-            // if user && smartAccount, pause.
-            ISmartAccount(smartAccount[_users[i]]).unpause();
-            unchecked {
-                ++i;
-            }
-        }
-    }
 
     function batchUpdate(
         address[] memory _users,
@@ -329,8 +306,8 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
 
     /// @dev derive user's address from user's signature (v,r,s).
     function create(
-        string calldata _user,
-        address[] calldata admins,
+        address _user,
+        string calldata _username,
         uint minAllocation,
         bool acceptERC20Tokens,
         address[] calldata permittedERC20Tokens,
@@ -339,43 +316,30 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         bool acceptERC1155Tokens,
         address[] calldata permittedERC1155Tokens,
         uint percentageFromAllocation,
-        address[] calldata paymentTokens,
-        bool includesNonce, // some tokens, like DAI seem to have a nonce in their permit functions.
-        uint256 nonce,
-        uint8 v,
-        bytes32 r,
-        bytes32 s,
-        bool useDefault
+        address[] calldata paymentTokens
     ) external lock returns (address user, address smartAccount) {
-        if (useDefault) {
-            _create(_user, includesNonce, nonce, v, r, s);
-        } else {
-            // use custom values
-            // deploy user's SmartAccount from here.
-        }
+        return (_user, _create(_user, _username));
     }
 
     function _create(
-        string calldata _user,
-        bool hasNonce,
-        uint nonce,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) private {
-        // use default values
-        // deploy SmartAccount from here.
+        address _user,
+        string calldata _name
+    ) private returns (address) {
+        // deploy SmartAccount here.
+        smartAccount[_user] = address(
+            new SmartAccount{salt: keccak256(abi.encode(_user))}(_name)
+        );
+        users[_user] = true;
+        return smartAccount[_user];
     }
 
-    function skim(
+    function move(
         address _token,
         address _to,
         uint _id
     ) external override returns (bool) {
         _isAdmin(msg.sender);
-        if (_token == address(0)) {
-            _to.call{value: address(this).balance}("");
-        }
+        if (_token == address(0)) _to.call{value: address(this).balance}("");
     }
 
     function deactivate(
