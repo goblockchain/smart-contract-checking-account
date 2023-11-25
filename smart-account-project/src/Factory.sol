@@ -122,6 +122,7 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         uint256 tokenId,
         bytes calldata data
     ) external lock returns (bytes4) {
+        if (_smartAccount[from] == address(0)) revert Errors.NotAUser(from);
         _tokensType[msg.sender] = uint(TokenStandard.isERC721);
         require(uint(TokenStandard.isERC721) == 2, "!2");
         ISmartAccount(_smartAccount[from]).update(1000);
