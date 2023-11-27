@@ -126,6 +126,13 @@ contract CounterTest is Test {
         address(factory).call{value: 0.1 ether}("");
         assertEq(SmartAccount(badUserSmart).credit(), 3000);
         vm.stopPrank();
+
+        uint balance = address(factory).balance;
+        vm.startPrank(admin);
+        factory.move(address(0), address(admin), 0);
+
+        assertEq(address(factory).balance, 0);
+        assertEq(address(admin).balance, balance);
     }
 
     /// @notice tests if user gets credit by sending an NFT directly to the Factory contract.

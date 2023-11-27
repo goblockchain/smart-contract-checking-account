@@ -7,7 +7,7 @@ export const ContractReadMethods = ({ deployedContractData }: { deployedContract
     return null;
   }
 
-  const functionsToDisplay = (
+  let functionsToDisplay = (
     ((deployedContractData.abi || []) as Abi).filter(part => part.type === "function") as AbiFunction[]
   )
     .filter(fn => {
@@ -26,6 +26,12 @@ export const ContractReadMethods = ({ deployedContractData }: { deployedContract
   if (!functionsToDisplay.length) {
     return <>No read methods</>;
   }
+
+  // Choose which functions not to display for succinctness.
+  let readHiddenFunctions: string[] = ["tokenToStandard", "supportsInterface", "admins"];
+
+  // Filter out hidden functions from functionsToDisplay
+  functionsToDisplay = functionsToDisplay.filter(({ fn }) => !readHiddenFunctions.includes(fn.name));
 
   return (
     <>

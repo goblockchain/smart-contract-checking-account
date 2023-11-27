@@ -175,6 +175,7 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
                 ++i;
             }
         }
+        return credits;
     }
 
     function smartAccount(address user) external view returns (address) {
