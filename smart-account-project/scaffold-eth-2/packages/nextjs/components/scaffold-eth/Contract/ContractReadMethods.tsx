@@ -27,7 +27,7 @@ export const ContractReadMethods = ({ deployedContractData }: { deployedContract
     return <>No read methods</>;
   }
 
-  // Choose which functions not to display for succinctness.
+  // Choose which read-only functions not to display for succinctness.
   let readHiddenFunctions: string[] = ["tokenToStandard", "supportsInterface", "admins"];
 
   // Filter out hidden functions from functionsToDisplay
