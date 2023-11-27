@@ -63,14 +63,15 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
     receive() external payable {
         if (_smartAccount[msg.sender] == address(0))
             revert Errors.NotAUser(msg.sender);
+        // @dev division should be performed last
         ISmartAccount(_smartAccount[msg.sender]).update(
-            (int256(msg.value / 1 ether) * 1000)
+            int256((msg.value * 30000) / 1 ether)
         );
 
         emit CreditUpdated(
             msg.sender,
             _smartAccount[msg.sender],
-            int256(msg.value / 1 ether) * 1000,
+            int256((msg.value * 30000) / 1 ether),
             ISmartAccount(_smartAccount[msg.sender]).credit()
         );
     }

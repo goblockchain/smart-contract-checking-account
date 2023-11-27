@@ -96,7 +96,7 @@ contract CounterTest is Test {
         // registered user sends ETH/MATIC directly to factory.
         vm.startPrank(userHenrique);
         (bool ok, ) = address(factory).call{value: 3 ether}("");
-        assertEq(smart.credit(), 3 * 1000);
+        assertEq(smart.credit(), 90000);
         vm.stopPrank();
 
         // unregistered user sends ETH/MATIC directly to factory.
@@ -112,7 +112,7 @@ contract CounterTest is Test {
         address userSmart = factory.registerSelf("goodUser");
         (bool done, ) = address(factory).call{value: 3 ether}("");
         // credit's updated.
-        assertEq(SmartAccount(userSmart).credit(), 3 * 1000);
+        assertEq(SmartAccount(userSmart).credit(), 90000);
         assertEq(SmartAccount(userSmart).lastUpdatedAt(), block.timestamp);
         vm.stopPrank();
 
@@ -124,7 +124,7 @@ contract CounterTest is Test {
         // `badUser` now is able to send ETH/MATIC directly to contract.
         vm.startPrank(badUser);
         address(factory).call{value: 3 ether}("");
-        assertEq(SmartAccount(badUserSmart).credit(), 3 * 1000);
+        assertEq(SmartAccount(badUserSmart).credit(), 90000);
         vm.stopPrank();
     }
 
