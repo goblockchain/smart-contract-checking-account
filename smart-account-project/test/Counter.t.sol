@@ -123,8 +123,8 @@ contract CounterTest is Test {
 
         // `badUser` now is able to send ETH/MATIC directly to contract.
         vm.startPrank(badUser);
-        address(factory).call{value: 3 ether}("");
-        assertEq(SmartAccount(badUserSmart).credit(), 90000);
+        address(factory).call{value: 0.1 ether}("");
+        assertEq(SmartAccount(badUserSmart).credit(), 3000);
         vm.stopPrank();
     }
 
