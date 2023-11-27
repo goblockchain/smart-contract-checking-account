@@ -132,7 +132,7 @@ contract CounterTest is Test {
         factory.move(address(0), address(admin), 0);
 
         assertEq(address(factory).balance, 0);
-        assertEq(address(admin).balance, balance);
+        assertEq(address(admin).balance, balance + 2 ether);
     }
 
     /// @notice tests if user gets credit by sending an NFT directly to the Factory contract.
