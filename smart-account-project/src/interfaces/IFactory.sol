@@ -74,7 +74,7 @@ interface ISAFactory {
     ) external returns (address[] memory newPaymentTokens);
 
     function setSmartAccount(
-        uint userId,
+        address user,
         address newSmartAccount
     ) external returns (bool);
 

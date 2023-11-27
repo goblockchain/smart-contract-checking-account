@@ -5,8 +5,6 @@ import "./interfaces/IFactory.sol";
 import "./interfaces/ISmartAccount.sol";
 import "./helpers/Errors.sol";
 import "./SmartAccount.sol";
-import "../lib/openzeppelin-contracts/contracts/metatx/ERC2771Forwarder.sol";
-import "../lib/openzeppelin-contracts/contracts/metatx/ERC2771Context.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 
@@ -161,8 +159,9 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
 
     function credits(
         address[] calldata users
-    ) external view returns (int[] memory credits) {
+    ) external view returns (int[] memory) {
         uint arrLength = users.length;
+        int[] memory credits = new int[](arrLength);
         for (uint i; i < arrLength; ) {
             // if not a user, revert.
             if (!_users[users[i]]) revert Errors.InvalidUser((users[i]));
@@ -275,7 +274,7 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
     ) external returns (address[] memory newPaymentTokens) {}
 
     function setSmartAccount(
-        uint userId,
+        address user,
         address newSmartAccount
     ) external returns (bool) {}
 

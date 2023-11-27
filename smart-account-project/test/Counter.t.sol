@@ -78,6 +78,9 @@ contract CounterTest is Test {
     function test_ViewFunctions() public {
         assertEq(factory.admin(admin), true);
         assertEq(factory.user(userHenrique), true);
+        address[] memory userss = new address[](1);
+        userss[0] = userHenrique;
+        factory.credits(userss);
 
         assertEq(smart.credit(), 0);
         assertEq(smart.score(), 0);
