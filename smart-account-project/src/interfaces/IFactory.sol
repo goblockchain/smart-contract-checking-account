@@ -24,10 +24,21 @@ interface ISAFactory {
     /// @param _token token to be withdrawn.
     /// @param _to to whom it should be given to, possibly being the user who sent it by accident.
     /// @param _id id of token if it's an NFT.
+    /// @param _amount amount of token, if applicable.
     function move(
         address _token,
         address _to,
-        uint _id
+        uint _id,
+        uint _amount
+    ) external returns (bool);
+
+    /// @notice it registers a token in case the token does not trigger a callback, like ERC20 tokens do not do.
+    /// @param _tokens tokens addressess to be registered.
+    /// @param _types token types that will represent the token.abi
+    /// @dev _types must be 1 for ERC20, 2 for ERC721 and 3 for ERC1155
+    function registerTokens(
+        address[] calldata _tokens,
+        uint256[] calldata _types
     ) external returns (bool);
 
     /// @notice Marks user as inactive and pauses Smart Account user's contract. Refunds should be given to users, if any. Callable by goBlockchain only.

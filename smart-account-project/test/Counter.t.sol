@@ -4,8 +4,19 @@ pragma solidity ^0.8.13;
 import {Test, console2} from "forge-std/Test.sol";
 import {Factory} from "../src/Factory.sol";
 import {SmartAccount} from "../src/SmartAccount.sol";
+import {ERC20} from "../openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {ERC721} from "../lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 import {ERC1155} from "../lib/openzeppelin-contracts/contracts/token/ERC1155/ERC1155.sol";
+
+contract MockERC20 is ERC20("MOCK", "MCK") {
+    constructor() {
+        _mint(msg.sender, 1000);
+    }
+
+    function mintMe(address to, uint amount) public {
+        _mint(to, amount);
+    }
+}
 
 contract MockERC721 is ERC721("Dummy721NFT", "D7NFT") {
     constructor() {
@@ -30,6 +41,7 @@ contract MockERC1155 is ERC1155("uri") {
 }
 
 contract CounterTest is Test {
+    MockERC20 erc20;
     MockERC721 nft;
     MockERC1155 batchNft;
     Factory factory;
@@ -50,6 +62,7 @@ contract CounterTest is Test {
         vm.startPrank(goodUser);
         nft = new MockERC721();
         batchNft = new MockERC1155();
+        erc20 = new MockERC20();
         assertEq(nft.balanceOf(goodUser), 1);
         vm.stopPrank();
 
@@ -129,7 +142,7 @@ contract CounterTest is Test {
 
         uint balance = address(factory).balance;
         vm.startPrank(admin);
-        factory.move(address(0), address(admin), 0);
+        factory.move(address(0), address(admin), 0, 0);
 
         assertEq(address(factory).balance, 0);
         assertEq(address(admin).balance, balance + 2 ether);
@@ -178,5 +191,66 @@ contract CounterTest is Test {
         // since user has sent two NFTs, his credit is updated accordingly.
         /// @dev (1000 + 1000), 1000 for each NFT sent.
         assertEq(SmartAccount(factory.smartAccount(goodUser)).credit(), 2000);
+    }
+
+    function test_Move() public {
+        /**
+         * @dev below is the same as `test_NFTCredit()`
+         */
+
+        vm.prank(badUser);
+
+        vm.expectRevert();
+        nft.safeTransferFrom(badUser, address(factory), 2);
+
+        vm.prank(admin);
+        (, address smartGoodUser) = factory.create(goodUser, "goodUser");
+        vm.prank(admin);
+        (, address smartBadUser) = factory.create(badUser, "badUser");
+
+        vm.prank(goodUser);
+        nft.safeTransferFrom(goodUser, address(factory), 1);
+
+        vm.prank(badUser);
+        nft.safeTransferFrom(badUser, address(factory), 2);
+
+        vm.startPrank(goodUser);
+        batchNft.mint(goodUser, 1);
+        batchNft.safeTransferFrom(goodUser, address(factory), 1, 1, "");
+
+        erc20.transfer(address(factory), erc20.balanceOf(goodUser) / 2);
+        vm.stopPrank();
+
+        //------------------------------MOVE--------------------------------
+
+        vm.startPrank(admin);
+
+        // check the `factory` still has the tokens
+        assertEq(batchNft.balanceOf(address(factory), 1), 1);
+        assertEq(nft.balanceOf(address(factory)), 2); // ids 1 && 2
+        assertEq(erc20.balanceOf(address(factory)), 500);
+
+        // move ERC721
+        factory.move(address(nft), admin, 1, 0);
+        factory.move(address(nft), admin, 2, 0);
+
+        // move ERC1155
+        factory.move(address(batchNft), admin, 1, 1);
+
+        // move ERC20 without registering
+        vm.expectRevert();
+        factory.move(address(erc20), admin, 500, 0);
+
+        address[] memory tokens = new address[](1);
+        uint[] memory types = new uint[](1);
+        tokens[0] = address(erc20);
+        types[0] = uint(4); // trying to register the token with type > 3.
+        vm.expectRevert();
+        factory.registerTokens(tokens, types);
+
+        types[0] = uint(1);
+        factory.registerTokens(tokens, types);
+        // @dev id here is 0.
+        factory.move(address(erc20), admin, 0, 500);
     }
 }

@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "./interfaces/IFactory.sol";
 import "./interfaces/ISmartAccount.sol";
 import "./helpers/Errors.sol";
+import "./helpers/TransferHelper.sol";
 import "./SmartAccount.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
@@ -84,6 +85,7 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         uint256 value,
         bytes calldata data
     ) external lock returns (bytes4) {
+        // NOTE: This is not yet safe. A malicious `msg.sender` can call this function with a registered `from` address, etc.
         if (_smartAccount[from] == address(0)) revert Errors.NotAUser(from);
         ISmartAccount(_smartAccount[from]).update(1000);
         require(uint(TokenStandard.isERC1155) == 3, "!3");
@@ -103,6 +105,7 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         uint256[] calldata values,
         bytes calldata data
     ) external lock returns (bytes4) {
+        // NOTE: This is not yet safe. A malicious `msg.sender` can call this function with a registered `from` address, etc.
         if (_smartAccount[from] == address(0)) revert Errors.NotAUser(from);
         ISmartAccount(_smartAccount[from]).update(1000);
         _tokensType[msg.sender] = uint(TokenStandard.isERC1155);
@@ -121,6 +124,7 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         uint256 tokenId,
         bytes calldata data
     ) external lock returns (bytes4) {
+        // NOTE: This is not yet safe. A malicious `msg.sender` can call this function with a registered `from` address, etc.
         if (_smartAccount[from] == address(0)) revert Errors.NotAUser(from);
         _tokensType[msg.sender] = uint(TokenStandard.isERC721);
         require(uint(TokenStandard.isERC721) == 2, "!2");
@@ -362,6 +366,23 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         _smartAccount[msg.sender] = smartUserAccount;
     }
 
+    function registerTokens(
+        address[] calldata _tokens,
+        uint256[] calldata _types
+    ) external returns (bool) {
+        _isAdmin(msg.sender);
+        uint length = _tokens.length;
+        if (length != _types.length) revert Errors.ArrayLengthMismatch();
+        for (uint i; i < length; ) {
+            // @dev below reverts if _types[i] > 3.
+            _tokensType[_tokens[i]] = uint(TokenStandard(_types[i]));
+            unchecked {
+                ++i;
+            }
+        }
+        return true;
+    }
+
     function _create(
         address user,
         string memory _name
@@ -374,17 +395,53 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         return _smartAccount[user];
     }
 
+    // TODO: apply `lock` modifier.
     function move(
         address _token,
         address _to,
-        uint _id
-    ) external override returns (bool) {
+        uint _id,
+        uint _amount
+    ) external lock returns (bool) {
         _isAdmin(msg.sender);
         if (_token == address(0)) {
-            (bool done, ) = _to.call{value: address(this).balance}("");
-            if (!done) revert Errors.UnableToMove();
-            return true;
+            TransferHelper.safeTransferETH(_to, address(this).balance);
+        } else if (_tokensType[_token] == uint(TokenStandard.isERC20)) {
+            moveERC20(_token, _to, _amount);
+        } else if (_tokensType[_token] == uint(TokenStandard.isERC721)) {
+            moveERC721(_token, _to, _id);
+        } else {
+            if (_tokensType[_token] != uint(TokenStandard.isERC1155))
+                revert Errors.InvalidToken(_token);
+            moveERC1155(_token, _to, _id, _amount);
         }
+        return true;
+    }
+
+    /*╔═════════════════════════════╗
+      ║    INTERNAL MOVE FUNCTIONS  ║
+      ╚═════════════════════════════╝*/
+
+    function moveERC20(address _token, address _to, uint256 _amount) private {
+        TransferHelper.safeTransfer(_token, _to, _amount);
+    }
+
+    function moveERC721(address _token, address _to, uint256 _id) private {
+        TransferHelper.safeTransferERC721From(_token, address(this), _to, _id);
+    }
+
+    function moveERC1155(
+        address _token,
+        address _to,
+        uint256 _id,
+        uint256 _amount
+    ) private {
+        TransferHelper.safeTransferERC1155From(
+            _token,
+            address(this),
+            _to,
+            _id,
+            _amount
+        );
     }
 
     function deactivate(
