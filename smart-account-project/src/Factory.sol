@@ -20,7 +20,8 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
     /*╔═════════════════════════════╗
       ║       STATE VARIABLES       ║
       ╚═════════════════════════════╝*/
-    address[] public admins;
+
+    uint256 constant MAX_ADMINS = 15;
 
     mapping(address => bool) private _admins;
 
@@ -28,13 +29,25 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
 
     mapping(address => address) private _smartAccount;
 
-    // maps a tokenIndex to a tokenStandard
+    ///@dev maps a tokenIndex to a tokenStandard
     mapping(address => uint) private _tokensType;
+
+    mapping(address => bool) private _tokensERC20ToAllocate;
+    mapping(address => bool) private _tokensERC721ToAllocate;
+    mapping(address => bool) private _tokensERC1155ToAllocate;
+
+    ///@dev maps token to percentage from allocation that will be transformed into credit.
+    mapping(address => uint) private cutForERC20;
+    mapping(address => uint) private cutForERC721;
+    mapping(address => uint) private cutForERC1155;
+
+    uint public minimumAllocation;
+    uint public percentageFromAllocation;
 
     uint private unlocked = 1;
 
     /*╔═════════════════════════════╗
-      ║           EVENTS            ║
+      ║         ENUM/EVENTS         ║
       ╚═════════════════════════════╝*/
 
     event CreditUpdated(
@@ -62,19 +75,8 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
       ║      CALLBACK FUNCTIONS     ║
       ╚═════════════════════════════╝*/
     receive() external payable {
-        if (_smartAccount[msg.sender] == address(0))
-            revert Errors.NotAUser(msg.sender);
-        // @dev division should be performed last
-        ISmartAccount(_smartAccount[msg.sender]).update(
-            int256((msg.value * 30000) / 1 ether)
-        );
-
-        emit CreditUpdated(
-            msg.sender,
-            _smartAccount[msg.sender],
-            int256((msg.value * 30000) / 1 ether),
-            ISmartAccount(_smartAccount[msg.sender]).credit()
-        );
+        /// @dev Native crypto (ETH/MATIC) are NOT stablecoins. This, for sure, could be used as a payment method, but it's better for an user to `swap` his native for an allowed payment token on a DEX and then pay using his tokens - since we have control over that as the price does NOT fluctuates considerably.
+        revert Errors.ReceivedNative();
     }
 
     /// @notice the function below as is MUST NOT be used in production. This is only a demo for a presentation
@@ -86,10 +88,12 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         bytes calldata data
     ) external lock returns (bytes4) {
         // NOTE: This is not yet safe. A malicious `msg.sender` can call this function with a registered `from` address, etc.
-        if (_smartAccount[from] == address(0)) revert Errors.NotAUser(from);
+        // if (_smartAccount[from] == address(0)) revert Errors.NotAUser(from);
+        require(_tokensType[msg.sender] == uint(TokenStandard.isERC1155), "!3");
+        revertIfZeroAddress(_smartAccount[from]);
+        if (!_users[from]) revert Errors.InvalidUser(from);
+
         ISmartAccount(_smartAccount[from]).update(1000);
-        require(uint(TokenStandard.isERC1155) == 3, "!3");
-        _tokensType[msg.sender] = uint(TokenStandard.isERC1155);
         return
             bytes4(
                 keccak256(
@@ -139,6 +143,7 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         _admins[msg.sender] = true;
 
         // make the factory itself an `admin`
+        /// @dev this avoids errors when factory calls SA.
         admins.push(address(this));
         _admins[address(this)] = true;
 
@@ -148,6 +153,10 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
     /*╔═════════════════════════════╗
       ║        VIEW FUNCTIONS       ║
       ╚═════════════════════════════╝*/
+
+    function version() external pure returns (string memory) {
+        return "v0";
+    }
 
     /// @inheritdoc ISAFactory
     function scores(
@@ -191,6 +200,24 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         return _tokensType[token];
     }
 
+    function tokensERC20AllowedAsAllocation(
+        address token
+    ) external view returns (bool) {
+        return _tokensERC20ToAllocate[token];
+    }
+
+    function tokensERC20AllowedAsAllocation(
+        address token
+    ) external view returns (bool) {
+        return _tokensERC721ToAllocate[token];
+    }
+
+    function tokensERC20AllowedAsAllocation(
+        address token
+    ) external view returns (bool) {
+        return _tokensERC1155ToAllocate[token];
+    }
+
     function admin(address admin) external view returns (bool) {
         return _admins[admin];
     }
@@ -203,7 +230,7 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
       ║      BATCH FUNCTIONS        ║
       ╚═════════════════════════════╝*/
 
-    function batchUpdate(
+    function adminUpdate(
         address[] memory users,
         int[] calldata _liabilities
     ) external lock {
@@ -211,12 +238,11 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         uint length = users.length;
         if (length != _liabilities.length) revert Errors.ArrayLengthMismatch();
         for (uint i; i < length; ) {
-            // if not a user, revert.
-            if (!_users[users[i]]) revert Errors.InvalidUser((users[i]));
-            // if a user, but no smartAccount, revert.
-            if (_smartAccount[users[i]] == address(0))
-                revert Errors.InvalidUser((users[i]));
-            // if user && smartAccount, update.
+            revertifZeroAddress(users[i]);
+            // if not a user
+            if (!_users[users[i]]) revert Errors.InvalidUser(users[i]);
+            // if no smart account for user, revert.
+            revertifZeroAddress(_smartAccount[users[i]]);
             ISmartAccount(_smartAccount[users[i]]).update(_liabilities[i]);
             unchecked {
                 ++i;
@@ -224,114 +250,180 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         }
     }
 
-    /// @inheritdoc ISAFactory
-    function batchSetSmartAccounts(
-        address[] calldata users,
-        address[] calldata _newSmartAccounts
-    ) external lock returns (bool) {
-        _isAdmin(msg.sender);
+    /*╔═════════════════════════════╗
+      ║        SET FUNCTIONS        ║
+      ╚═════════════════════════════╝*/
+    ///@dev Have external functions as entrypoint, but logic inside internal functions.
+    function setMinAllocation(uint minAllocation) external returns (uint) {
+        _admin(msg.sender);
+        _setMinAllocation(minAllocation);
+        return minimumAllocation;
+    }
 
-        // effects
-        uint length = users.length;
+    function _setMinAllocation(uint minAllocation) internal {
+        minimumAllocation = minAllocation;
+    }
+
+    function setAllowedERC20Tokens(
+        address[] calldata tokenAddresses,
+        bool[] calldata allow
+    ) external returns (bool) {
+        _admin(msg.sender);
+        uint length = tokenAddresses.length;
+        if (length != allow.length) revert Errors.ArrayLengthMismatch();
         for (uint i; i < length; ) {
-            // if not a user, revert.
-            if (!_users[users[i]]) revert Errors.InvalidUser((users[i]));
-            // if a user, but no smartAccount, revert.
-            if (_smartAccount[users[i]] == address(0))
-                revert Errors.InvalidUser((users[i]));
-            // if a user && smartAccount, set new one.
-            _smartAccount[users[i]] = _newSmartAccounts[i];
+            _setAllowedERC20Token(tokenAddresses[i], allow[i]);
             unchecked {
                 ++i;
             }
         }
-
-        //TODO: move funds from older to newer smartAccount.
+        // if it reaches to this stage, everything has gone well. Otherwise, it's been reverted.
+        return true;
     }
 
-    /*╔═════════════════════════════╗
-      ║        SET FUNCTIONS        ║
-      ╚═════════════════════════════╝*/
+    function _setAllowedERC20Token(address token, bool allow) internal {
+        revertifZeroAddress(token);
+        _tokensERC20ToAllocate[token] = allow;
+        if (allow) _tokensType[_token] == uint(TokenStandard.isERC20);
+        if (!allow) _tokensType[_token] == uint(TokenStandard.isNothing);
+    }
 
-    function setMinAllocation(
-        uint userId,
-        uint minAllocation
-    ) external returns (uint newMinAllocation) {}
+    function setAllowedERC721Tokens(
+        address[] tokenAddresses,
+        bool[] calldata allow
+    ) external returns (bool) {
+        _admin(msg.sender);
+        uint length = tokenAddresses.length;
+        if (length != allow.length) revert Errors.ArrayLengthMismatch();
+        for (uint i; i < length; ) {
+            _setAllowedERC721Token(tokenAddresses[i], allow[i]);
+            unchecked {
+                ++i;
+            }
+        }
+        return true;
+    }
 
-    function setPermittedERC20Tokens(
-        address tokenAddress
-    ) external returns (address[] memory newPermittedERC20Tokens) {}
+    function _setAllowedERC721Token(address token, bool allow) internal {
+        revertifZeroAddress(token);
+        _tokensERC721ToAllocate[token] = allow;
+        if (allow) _tokensType[_token] == uint(TokenStandard.isERC721);
+        if (!allow) _tokensType[_token] == uint(TokenStandard.isNothing);
+    }
 
-    function setPermittedERC721Tokens(
-        address tokenAddress
-    ) external returns (address[] memory newPermittedERC721Tokens) {}
+    function setAllowedERC1155Tokens(
+        address[] calldata tokenAddresses,
+        bool[] calldata allow
+    ) external returns (bool) {
+        _admin(msg.sender);
+        uint length = tokenAddresses.length;
+        if (length != allow.length) revert Errors.ArrayLengthMismatch();
+        for (uint i; i < length; ) {
+            _setAllowedERC1155Tokens(tokenAddresses[i], allow[i]);
+            unchecked {
+                ++i;
+            }
+        }
+        return true;
+    }
 
-    function setPermittedERC1155Tokens(
-        address tokenAddress
-    ) external returns (address[] memory) {}
+    function _setAllowedERC1155Tokens(address token, bool allow) internal {
+        revertifZeroAddress(token);
+        _tokensERC1155ToAllocate[token] = allow;
+        if (allow) _tokensType[_token] == uint(TokenStandard.isERC1155);
+        if (!allow) _tokensType[_token] == uint(TokenStandard.isNothing);
+    }
 
-    function setPercentageFromAllocation(
-        uint percentageFromAllocation
-    ) external returns (uint newPercentageFromAllocation) {}
+    function setCutFromAllocationForTokens(
+        address[] calldata tokens,
+        uint[] calldata percentages
+    ) external returns (bool) {
+        _isAdmin(msg.sender);
+        uint length = tokens.length;
+        if (length != percentages.length) revert Errors.ArrayLengthMismatch();
+        for (uint i; length; ) {
+            revertIfZeroAddress(tokens[i]);
+            // check token's registered
+            if (_tokensType[tokens[i]] == uint(TokenStandard.isNothing))
+                revert Errors.InvalidToken(tokens[i]);
+            /// @dev if percentage is 0, then token will not be accepted for allocations to avoid mistaken allocations.
+            _setCutForToken(tokens[i], percentages);
+            unchecked {
+                ++i;
+            }
+        }
+        return true;
+    }
+
+    function _setCutForToken(address token, uint percentage) internal {
+        if (_tokensType[tokens[i]] == uint(TokenStandard.isERC20))
+            cutForERC20[token] = percentage;
+        if (_tokensType[tokens[i]] == uint(TokenStandard.isERC721))
+            cutForERC721[token] = percentage;
+        if (_tokensType[tokens[i]] == uint(TokenStandard.isERC1155))
+            cutForERC1155[token] = percentage;
+    }
+
+    function _setPercentageFromAllocation(uint percentage) internal {
+        percentageFromAllocation = percentage;
+    }
+
+    /**
+     * TODO: think whether the allowed to deposit should be the same as the allowed to pay in.
 
     function setPaymentTokens(
         address paymentTokens,
         uint tokenType
     ) external returns (address[] memory newPaymentTokens) {}
+     */
 
-    function setSmartAccount(
-        address user,
-        address newSmartAccount
-    ) external returns (bool) {}
+    function setSmartAccounts(
+        address[] calldata users,
+        address[] calldata smartAccounts
+    ) external returns (bool) {
+        _isAdmin(msg.sender);
+        uint length = users.length;
+        if (length != smartAccounts.length) revert Errors.ArrayLengthMismatch();
+        for (uint i; i < length; ) {
+            revertifZeroAddress(users[i]);
+            revertifZeroAddress(smartAccounts[i]);
+            // if not a user
+            if (!_users[users[i]]) revert Errors.InvalidUser(users[i]);
+            // if no smart account for user, revert.
+            revertifZeroAddress(_smartAccount[users[i]]);
+            _setSmartAccount(user[i], smartAccounts[i]);
+            unchecked {
+                ++i;
+            }
+        }
+        return true;
+    }
+
+    function _setSmartAccount(address user, address smartAccount) internal {
+        _smartAccount[user] = smartAccount;
+    }
 
     /*╔═════════════════════════════╗
       ║       ADMIN FUNCTIONS       ║
       ╚═════════════════════════════╝*/
 
     /// @inheritdoc ISAFactory
-    function addAdmin(
-        address _admin
-    ) external lock returns (address[] memory newAdmins) {
+    function setAdmins(address[] calldata admins) external lock returns (bool) {
         _isAdmin(msg.sender);
-        _admins[_admin] = true;
-        admins.push(_admin);
-        // external and public functions can't return storage references.
-        newAdmins = admins;
-    }
-
-    /// @inheritdoc ISAFactory
-    /// @dev it works even if there's still one admin.
-    function removeAdmin(
-        address _admin
-    ) external lock returns (address[] memory newAdmins) {
-        _isAdmin(msg.sender);
-        if (!_admins[_admin]) revert Errors.InvalidCalldata();
-        _admins[_admin] = false;
-
-        // remove admin from array without making address(0) an admin.
-        // find its index
-        uint index = _findIndex(_admin);
-
-        // replace its position with last admin
-        admins[index] = admins[admins.length - 1];
-
-        // remove duplicate last admin
-        admins.pop();
-
-        // external and public functions can't return storage references.
-        newAdmins = admins;
-    }
-
-    function _findIndex(address _admin) internal returns (uint) {
         uint length = admins.length;
         for (uint i; i < length; ) {
-            if (admins[i] == _admin) {
-                return i;
-            }
+            revertifZeroAddress(admins[i]);
+            _setAdmin(admins[i]);
             unchecked {
                 ++i;
             }
         }
+
+        // TODO: emit an event
+    }
+
+    function _setAdmin(address admin) internal {
+        _admins[admin] = true;
     }
 
     function punish(uint[] calldata usersIds, int amounts) external {}
@@ -374,13 +466,18 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
         uint length = _tokens.length;
         if (length != _types.length) revert Errors.ArrayLengthMismatch();
         for (uint i; i < length; ) {
-            // @dev below reverts if _types[i] > 3.
-            _tokensType[_tokens[i]] = uint(TokenStandard(_types[i]));
+            /// @dev below reverts if _types[i] > 3.
+            revertIfZeroAddress(_tokens[i]);
+            _registerToken(_tokens[i], _types[i]);
             unchecked {
                 ++i;
             }
         }
         return true;
+    }
+
+    function _registerToken(address token, uint _type) internal {
+        _tokensType[token] = uint(TokenStandard(_type));
     }
 
     function _create(
@@ -418,6 +515,18 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
     }
 
     /*╔═════════════════════════════╗
+      ║        CHECK FUNCTIONS      ║
+      ╚═════════════════════════════╝*/
+
+    function ifZeroRevert(uint amount) private {
+        if (amount == 0) revert Errors.AmountIsZero();
+    }
+
+    function revertifZeroAddress(address token) private {
+        if (token == address(0)) revert Errors.AddressIsZero();
+    }
+
+    /*╔═════════════════════════════╗
       ║    INTERNAL MOVE FUNCTIONS  ║
       ╚═════════════════════════════╝*/
 
@@ -443,11 +552,6 @@ contract Factory is ISAFactory, IERC721Receiver, IERC1155Receiver {
             _amount
         );
     }
-
-    function deactivate(
-        uint userId,
-        bool refund
-    ) external override returns (bool) {}
 
     function supportsInterface(bytes4 interfaceId) public view returns (bool) {
         return interfaceId == type(IERC165).interfaceId;

@@ -41,36 +41,38 @@ interface ISAFactory {
         uint256[] calldata _types
     ) external returns (bool);
 
-    /// @notice Marks user as inactive and pauses Smart Account user's contract. Refunds should be given to users, if any. Callable by goBlockchain only.
-    /// @param userId ID of user to inactivate.
-    function deactivate(uint userId, bool refund) external returns (bool);
-
     /*╔═════════════════════════════╗
       ║        SET FUNCTIONS        ║
       ╚═════════════════════════════╝*/
 
     /// @notice it sets the minAllocation for a certain user. If userId == 0, then it sets the minAllocation for all future users.
-    /// @param userId the user for which the minAllocation will change. If 0, change in factory, and ,therefore, for all future users.
     /// @param minAllocation min quantity of tokens the user will have to allocate in the Smart Account.
     function setMinAllocation(
-        uint userId,
         uint minAllocation
     ) external returns (uint newMinAllocation);
 
-    /// @notice callable by factory's admin. Registers a new token, making it possible for it to be used as an paymentMethod. Sorting should be handled inside this function and other tokens should be reorganized in their tokenIndexes. TokenType is also handled here: whether it's a erc20 (0), erc721(1) or erc1155(2).
-    function setPermittedERC20Tokens(
-        address tokenAddress
-    ) external returns (address[] memory newPermittedERC20Tokens);
+    /// @notice set percentage from allocation to be made available as credit.
+    /// @param percentage new percentage threshold to be used to compute credit.
+    function setPercentageFromAllocation(
+        uint percentage
+    ) external returns (bool);
 
     /// @notice callable by factory's admin. Registers a new token, making it possible for it to be used as an paymentMethod. Sorting should be handled inside this function and other tokens should be reorganized in their tokenIndexes. TokenType is also handled here: whether it's a erc20 (0), erc721(1) or erc1155(2).
-    function setPermittedERC721Tokens(
+    function setAllowedERC20Tokens(
+        address[] calldata tokenAddresses,
+        bool[] calldata allow
+    ) external returns (bool);
+
+    /// @notice callable by factory's admin. Registers a new token, making it possible for it to be used as an paymentMethod. Sorting should be handled inside this function and other tokens should be reorganized in their tokenIndexes. TokenType is also handled here: whether it's a erc20 (0), erc721(1) or erc1155(2).
+    function setAllowedERC721Tokens(
         address tokenAddress
     ) external returns (address[] memory newPermittedERC721Tokens);
 
     /// @notice callable by factory's admin. Registers a new token, making it possible for it to be used as an paymentMethod. Sorting should be handled inside this function and other tokens should be reorganized in their tokenIndexes. TokenType is also handled here: whether it's a erc20 (0), erc721(1) or erc1155(2).
-    function setPermittedERC1155Tokens(
-        address tokenAddress
-    ) external returns (address[] memory);
+    function setAllowedERC1155Tokens(
+        address[] tokenAddresses,
+        bool[] calldata allow
+    ) external returns (bool);
 
     function setPercentageFromAllocation(
         uint percentageFromAllocation
@@ -85,21 +87,13 @@ interface ISAFactory {
     ) external returns (address[] memory newPaymentTokens);
 
     function setSmartAccount(
-        address user,
-        address newSmartAccount
+        address[] calldata user,
+        address[] calldata smartAccounts
     ) external returns (bool);
 
     /*╔═════════════════════════════╗
       ║      BATCH FUNCTIONS        ║
       ╚═════════════════════════════╝*/
-
-    /// @notice to be used when new feature has come to the protocol. Funds need to be retrieved from old smart accounts to new ones through the skim() function inside this function.
-    /// @param users id of user
-    /// @param _newSmartAccounts new address of the contract with the new feature.
-    function batchSetSmartAccounts(
-        address[] calldata users,
-        address[] calldata _newSmartAccounts
-    ) external returns (bool);
 
     function registerSelf(string calldata userName) external returns (address);
 
@@ -123,13 +117,13 @@ interface ISAFactory {
         string calldata _username
     ) external returns (address user, address smartAccount);
 
-    /// @notice Called to update users's SA liabilities. This function will probably be called once a month to update user's states. This function can be used or a direct call to an user's SA can be made through its `update` function, at any given time. 1) The user will have his credit updated only when he allocates - which will be available only through the front-end. If a user does not deposit anything more than his initial deposit, only the company will be able to update his credit based on his off-chain card usage & repayment.
+    /// @notice Called to update users's SA liabilities. This function will probably be called once a month to update user's states. This function can be used or a direct call to an user's SA can be made through its `update` function, at any given time. 1) The user will have his credit updated only when he allocates - which will be available only through the front-end. If a user does not deposit anything more than his initial deposit, only the company will be able to update his credit based on his off-chain card usage & repayment. This function MUST only to be called by `admins` since it defines how much a user has to pay on-chain, since the user will not update his liability when buying with his card.
     /// @dev Those who have debt will be the ones that have not paid their bills. They should be punish()ed according to the decided punition.
     /// @dev Those who have credit are probably those who've probably paid more than they should, in order to gain compound credit.
     /// @dev Those with a 0 are the ones who are neither in debt or in credit. They've paid their bills and are supposed to continue receiving credit for the following month.
     /// @param _users these are the target SA of each of the users whose liability is being updated.
     /// @param _liabilities this is the actual debt (<0) or credit(>0) the user has gained in at any time.
-    function batchUpdate(
+    function adminUpdate(
         address[] memory _users,
         int[] calldata _liabilities
     ) external;
@@ -162,4 +156,12 @@ interface ISAFactory {
     /// @notice gets a token from its address and check whether it's a erc20 (0), erc721(1) or erc1155(2).
     /// @param _token address of token.
     function tokenToStandard(address _token) external view returns (uint);
+
+    /**
+     * @notice This function must return one of the following:
+     * v0: if users are the ones to pay for their txs.
+     * v1: v0 + if company is able to pay for some of the txs from users. (meta-txs funcionality).
+     * v2: v1 + if there's a `staking` mechanism that generates rewards for  company or/and goBlockchain or/and users.
+     */
+    function version() external pure returns (string memory);
 }

@@ -11,5 +11,8 @@ library Errors {
     error Paused();
     error InvalidToken(address token);
     error UnableToMove();
-    error NotAUser(address nonUser);
+    error InvalidSmartAccount(address smartAccount);
+    error AmountIsZero();
+    error AddressIsZero();
+    error ReceivedNative();
 }
