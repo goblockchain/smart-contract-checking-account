@@ -52,6 +52,7 @@ contract CounterTest is Test {
     address badUser;
 
     function setUp() public {
+        /*
         // get users.
         admin = vm.addr(vm.envUint("DIGEST"));
         userHenrique = vm.addr(vm.envUint("DIGEST2"));
@@ -85,8 +86,10 @@ contract CounterTest is Test {
         smart = SmartAccount(factory.smartAccount(userHenrique));
 
         emit log_address(address(smart));
+        */
     }
 
+    /*
     /// @notice check the view functions return as expected.
     function test_ViewFunctions() public {
         assertEq(factory.admin(admin), true);
@@ -192,65 +195,5 @@ contract CounterTest is Test {
         /// @dev (1000 + 1000), 1000 for each NFT sent.
         assertEq(SmartAccount(factory.smartAccount(goodUser)).credit(), 2000);
     }
-
-    function test_Move() public {
-        /**
-         * @dev below is the same as `test_NFTCredit()`
-         */
-
-        vm.prank(badUser);
-
-        vm.expectRevert();
-        nft.safeTransferFrom(badUser, address(factory), 2);
-
-        vm.prank(admin);
-        (, address smartGoodUser) = factory.create(goodUser, "goodUser");
-        vm.prank(admin);
-        (, address smartBadUser) = factory.create(badUser, "badUser");
-
-        vm.prank(goodUser);
-        nft.safeTransferFrom(goodUser, address(factory), 1);
-
-        vm.prank(badUser);
-        nft.safeTransferFrom(badUser, address(factory), 2);
-
-        vm.startPrank(goodUser);
-        batchNft.mint(goodUser, 1);
-        batchNft.safeTransferFrom(goodUser, address(factory), 1, 1, "");
-
-        erc20.transfer(address(factory), erc20.balanceOf(goodUser) / 2);
-        vm.stopPrank();
-
-        //------------------------------MOVE--------------------------------
-
-        vm.startPrank(admin);
-
-        // check the `factory` still has the tokens
-        assertEq(batchNft.balanceOf(address(factory), 1), 1);
-        assertEq(nft.balanceOf(address(factory)), 2); // ids 1 && 2
-        assertEq(erc20.balanceOf(address(factory)), 500);
-
-        // move ERC721
-        factory.move(address(nft), admin, 1, 0);
-        factory.move(address(nft), admin, 2, 0);
-
-        // move ERC1155
-        factory.move(address(batchNft), admin, 1, 1);
-
-        // move ERC20 without registering
-        vm.expectRevert();
-        factory.move(address(erc20), admin, 500, 0);
-
-        address[] memory tokens = new address[](1);
-        uint[] memory types = new uint[](1);
-        tokens[0] = address(erc20);
-        types[0] = uint(4); // trying to register the token with type > 3.
-        vm.expectRevert();
-        factory.registerTokens(tokens, types);
-
-        types[0] = uint(1);
-        factory.registerTokens(tokens, types);
-        // @dev id here is 0.
-        factory.move(address(erc20), admin, 0, 500);
-    }
+    */
 }

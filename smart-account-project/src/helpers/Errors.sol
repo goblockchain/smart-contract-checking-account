@@ -10,6 +10,7 @@ library Errors {
     error Locked();
     error Paused();
     error InvalidToken(address token);
+    error InvalidTokenType(address token);
     error UnableToMove();
     error InvalidSmartAccount(address smartAccount);
     error AmountIsZero();

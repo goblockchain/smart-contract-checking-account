@@ -1,0 +1,233 @@
+{
+	"compiler": {
+		"version": "0.8.21+commit.d9974bed"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [],
+				"name": "AddressIsZero",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					}
+				],
+				"name": "InvalidUser",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "Locked",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "operator",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "from",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "ids",
+						"type": "uint256[]"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "values",
+						"type": "uint256[]"
+					},
+					{
+						"internalType": "bytes",
+						"name": "data",
+						"type": "bytes"
+					}
+				],
+				"name": "onERC1155BatchReceived",
+				"outputs": [
+					{
+						"internalType": "bytes4",
+						"name": "",
+						"type": "bytes4"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "operator",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "from",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "id",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "value",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bytes",
+						"name": "data",
+						"type": "bytes"
+					}
+				],
+				"name": "onERC1155Received",
+				"outputs": [
+					{
+						"internalType": "bytes4",
+						"name": "",
+						"type": "bytes4"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes4",
+						"name": "interfaceId",
+						"type": "bytes4"
+					}
+				],
+				"name": "supportsInterface",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {
+				"onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)": {
+					"details": "Handles the receipt of a multiple ERC1155 token types. This function is called at the end of a `safeBatchTransferFrom` after the balances have been updated. NOTE: To accept the transfer(s), this must return `bytes4(keccak256(\"onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)\"))` (i.e. 0xbc197c81, or its own function selector).",
+					"params": {
+						"data": "Additional data with no specified format",
+						"from": "The address which previously owned the token",
+						"ids": "An array containing ids of each token being transferred (order and length must match values array)",
+						"operator": "The address which initiated the batch transfer (i.e. msg.sender)",
+						"values": "An array containing amounts of each token being transferred (order and length must match ids array)"
+					},
+					"returns": {
+						"_0": "`bytes4(keccak256(\"onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)\"))` if transfer is allowed"
+					}
+				},
+				"supportsInterface(bytes4)": {
+					"details": "Returns true if this contract implements the interface defined by `interfaceId`. See the corresponding https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section] to learn more about how these ids are created. This function call must use less than 30 000 gas."
+				}
+			},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {
+				"onERC1155Received(address,address,uint256,uint256,bytes)": {
+					"notice": "the function below as is MUST NOT be used in production. This is only a demo for a presentation"
+				}
+			},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"src/AllowERC1155.sol": "AllowERC1155"
+		},
+		"evmVersion": "shanghai",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol": {
+			"keccak256": "0xb69597a63b202e28401128bed6a6d259e8730191274471af7303eafb247881a3",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://25addbda49a578b3318130585601344c5149a5549d749adf88e9685349a46b23",
+				"dweb:/ipfs/Qme2DuD8gpsve1ZvaSMQpBwMdpU7yAtekDwr7gUp8dX4zX"
+			]
+		},
+		"@openzeppelin/contracts/utils/introspection/IERC165.sol": {
+			"keccak256": "0x4296879f55019b23e135000eb36896057e7101fb7fb859c5ef690cf14643757b",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://87b3541437c8c443ccd36795e56a338ed12855eec17f8da624511b8d1a7e14df",
+				"dweb:/ipfs/QmeJQCtZrQjtJLr6u7ZHWeH3pBnjtLWzvRrKViAi7UZqxL"
+			]
+		},
+		"src/AllowERC1155.sol": {
+			"keccak256": "0xc286a7b1fdeac1ce7a480cb15b0d190ce051673580a4294ced2666be679fccd7",
+			"license": "UNLICENSED",
+			"urls": [
+				"bzz-raw://b747f1f29a9533313f998c8ea2e22c51e1688a71ef464a0dd02f3d4f6fd5cd38",
+				"dweb:/ipfs/QmQnCyiP4mUSEyRXCntkBbxPoaL7dxPXsjZS69ftyxMpqh"
+			]
+		},
+		"src/Checks.sol": {
+			"keccak256": "0x65bb11df807f778a05ee9a01879398a0a2da23362eee5ce3d0c947b01ff5ec36",
+			"license": "UNLICENSED",
+			"urls": [
+				"bzz-raw://bd3be5a9816e7b19abaf6ef20f37db12e28d77c1459154283e5a0ccefc13cfa1",
+				"dweb:/ipfs/QmbY2XqUv6KouJB5YzWR9ssCG2GT5FfoME8EEFnpXtyKGF"
+			]
+		},
+		"src/Storage.sol": {
+			"keccak256": "0x5216fa06b063b3d9e25221f3487971275a3d25dbe007b06178d794cb7ab1cd20",
+			"license": "UNLICENSED",
+			"urls": [
+				"bzz-raw://d382416dc25ce28f47967ae4608a6a0976dcd412f88a857cd42b634afa4c766a",
+				"dweb:/ipfs/QmbdpWxbEopmwvSpMCkxPhLpjTw38GR1LFPWniEkF3HjUz"
+			]
+		},
+		"src/helpers/Errors.sol": {
+			"keccak256": "0xfc012755a7b7cde80f3a3c21ef2e5e44e2973bb10564577571eb838cbd3b42f1",
+			"license": "UNLICENSED",
+			"urls": [
+				"bzz-raw://d2eae5414a969480b18b68abae81c1f08bb658f608f40ae3f0f6d3b1e7f1310e",
+				"dweb:/ipfs/QmQMYi7XDnosRQFV91CcFkqxmmnuxAGmLv15A2JCGbEnuF"
+			]
+		},
+		"src/interfaces/ISmartAccount.sol": {
+			"keccak256": "0x86e9e36816cdb15703225659f57f3f38b9ae090b23c78b0a3d63ffcf4df7afb3",
+			"license": "SEE LICENSE IN LICENSE",
+			"urls": [
+				"bzz-raw://4abe7ec943bb1a00356078892e3ffdcace4c4992d8e33b6fab0cb533e69eeb94",
+				"dweb:/ipfs/QmewdeMb2B9Aq9Sj7ihEa71NbZN3a9ndP9DGAYFuKNKek4"
+			]
+		}
+	},
+	"version": 1
+}

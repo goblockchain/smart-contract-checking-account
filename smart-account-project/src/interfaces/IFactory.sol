@@ -12,14 +12,6 @@ interface ISAFactory {
       ║      ADMIN FUNCTIONS        ║
       ╚═════════════════════════════╝*/
 
-    function addAdmin(
-        address _admin
-    ) external returns (address[] memory newAdmins);
-
-    function removeAdmin(
-        address _admin
-    ) external returns (address[] memory newAdmins);
-
     /// @notice withdraws any tokens directly transferred to this contract or to any SA contract by accident. If token to be withdrawn is the zero address, withdraw ether from contract.
     /// @param _token token to be withdrawn.
     /// @param _to to whom it should be given to, possibly being the user who sent it by accident.
@@ -32,30 +24,9 @@ interface ISAFactory {
         uint _amount
     ) external returns (bool);
 
-    /// @notice it registers a token in case the token does not trigger a callback, like ERC20 tokens do not do.
-    /// @param _tokens tokens addressess to be registered.
-    /// @param _types token types that will represent the token.abi
-    /// @dev _types must be 1 for ERC20, 2 for ERC721 and 3 for ERC1155
-    function registerTokens(
-        address[] calldata _tokens,
-        uint256[] calldata _types
-    ) external returns (bool);
-
     /*╔═════════════════════════════╗
       ║        SET FUNCTIONS        ║
       ╚═════════════════════════════╝*/
-
-    /// @notice it sets the minAllocation for a certain user. If userId == 0, then it sets the minAllocation for all future users.
-    /// @param minAllocation min quantity of tokens the user will have to allocate in the Smart Account.
-    function setMinAllocation(
-        uint minAllocation
-    ) external returns (uint newMinAllocation);
-
-    /// @notice set percentage from allocation to be made available as credit.
-    /// @param percentage new percentage threshold to be used to compute credit.
-    function setPercentageFromAllocation(
-        uint percentage
-    ) external returns (bool);
 
     /// @notice callable by factory's admin. Registers a new token, making it possible for it to be used as an paymentMethod. Sorting should be handled inside this function and other tokens should be reorganized in their tokenIndexes. TokenType is also handled here: whether it's a erc20 (0), erc721(1) or erc1155(2).
     function setAllowedERC20Tokens(
@@ -65,37 +36,19 @@ interface ISAFactory {
 
     /// @notice callable by factory's admin. Registers a new token, making it possible for it to be used as an paymentMethod. Sorting should be handled inside this function and other tokens should be reorganized in their tokenIndexes. TokenType is also handled here: whether it's a erc20 (0), erc721(1) or erc1155(2).
     function setAllowedERC721Tokens(
-        address tokenAddress
-    ) external returns (address[] memory newPermittedERC721Tokens);
-
-    /// @notice callable by factory's admin. Registers a new token, making it possible for it to be used as an paymentMethod. Sorting should be handled inside this function and other tokens should be reorganized in their tokenIndexes. TokenType is also handled here: whether it's a erc20 (0), erc721(1) or erc1155(2).
-    function setAllowedERC1155Tokens(
-        address[] tokenAddresses,
+        address[] calldata tokenAddress,
         bool[] calldata allow
     ) external returns (bool);
 
-    function setPercentageFromAllocation(
-        uint percentageFromAllocation
-    ) external returns (uint newPercentageFromAllocation);
-
-    /// @notice callable by factory's admin. Registers a new token, making it possible for it to be used as an paymentMethod. Sorting should be handled inside this function and other tokens should be reorganized in their tokenIndexes.
-    /// @param paymentTokens token for payment
-    /// @param tokenType whether it's a erc20 (0), erc721(1) or erc1155(2).
-    function setPaymentTokens(
-        address paymentTokens,
-        uint tokenType
-    ) external returns (address[] memory newPaymentTokens);
-
-    function setSmartAccount(
-        address[] calldata user,
-        address[] calldata smartAccounts
+    /// @notice callable by factory's admin. Registers a new token, making it possible for it to be used as an paymentMethod. Sorting should be handled inside this function and other tokens should be reorganized in their tokenIndexes. TokenType is also handled here: whether it's a erc20 (0), erc721(1) or erc1155(2).
+    function setAllowedERC1155Tokens(
+        address[] calldata tokenAddresses,
+        bool[] calldata allow
     ) external returns (bool);
 
     /*╔═════════════════════════════╗
       ║      BATCH FUNCTIONS        ║
       ╚═════════════════════════════╝*/
-
-    function registerSelf(string calldata userName) external returns (address);
 
     /* VISA-off
     function batchPause(address[] calldata _users) external;
